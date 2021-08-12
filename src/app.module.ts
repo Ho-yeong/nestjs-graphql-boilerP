@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import * as Joi from 'joi';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
+import { JwtModule } from './jwt/jwt.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { GraphQLModule } from '@nestjs/graphql';
         DB_USERNAME: Joi.string().valid(),
         DB_PASSWORD: Joi.string().valid(),
         DB_NAME: Joi.string().valid(),
+        PRIVATE_KEY: Joi.string().valid().required(),
       }),
     }),
     TypeOrmModule.forRoot({
@@ -33,10 +35,12 @@ import { GraphQLModule } from '@nestjs/graphql';
             username: process.env.DB_USERNAME,
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME,
+            charset: 'utf8',
           }),
       synchronize: true,
       logging: process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
       entities: [User],
+      charset: 'utf8',
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: true,
@@ -45,6 +49,9 @@ import { GraphQLModule } from '@nestjs/graphql';
         const TOKEN_KEY = 'x-jwt';
         return { token: req ? req.headers[TOKEN_KEY] : connection.context[TOKEN_KEY] };
       },
+    }),
+    JwtModule.forRoot({
+      privateKey: process.env.PRIVATE_KEY,
     }),
     AuthModule,
     UsersModule,
