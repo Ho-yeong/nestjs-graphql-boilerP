@@ -8,6 +8,9 @@ import * as Joi from 'joi';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { JwtModule } from './jwt/jwt.module';
+import { ReservationModule } from './reservation/reservation.module';
+import { Reservation } from './reservation/entities/reservation.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -39,7 +42,7 @@ import { JwtModule } from './jwt/jwt.module';
           }),
       synchronize: true,
       logging: process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
-      entities: [User],
+      entities: [User, Reservation],
       charset: 'utf8',
     }),
     GraphQLModule.forRoot({
@@ -56,6 +59,8 @@ import { JwtModule } from './jwt/jwt.module';
     AuthModule,
     UsersModule,
     CommonModule,
+    ReservationModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [],
   providers: [],

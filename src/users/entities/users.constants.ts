@@ -1,7 +1,6 @@
 export enum UserRole {
   Admin = 'Admin',
   Member = 'Member',
-  Guest = 'Guest',
 }
 
 export enum UserTeam {
@@ -17,8 +16,8 @@ export enum UserTeam {
   UI = 'UI',
   Effect = 'Effect',
   Animation = 'Animation',
-  FinancialSupport = 'Financial Support',
+  FinancialSupport = 'FinancialSupport',
   LQA = 'LQA',
   QA = 'QA',
-  PersonnelManagement = 'Personnel Management',
+  PersonnelManagement = 'PersonnelManagement',
 }

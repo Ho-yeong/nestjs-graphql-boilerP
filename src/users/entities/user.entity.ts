@@ -1,10 +1,11 @@
 import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { CoreEntity } from '../../common/entities/core.entity';
-import { BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
+import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { IsEnum, IsString } from 'class-validator';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { UserRole, UserTeam } from './users.constants';
+import { Reservation } from '../../reservation/entities/reservation.entity';
 
 registerEnumType(UserRole, { name: 'UserRole' });
 registerEnumType(UserTeam, { name: 'UserTeam' });
@@ -37,6 +38,10 @@ export class User extends CoreEntity {
   @Field((type) => UserRole)
   @IsEnum(UserRole)
   role: UserRole;
+
+  @Field((type) => [Reservation], { nullable: true })
+  @OneToMany((type) => Reservation, (reservation) => reservation.host, { nullable: true })
+  reservations?: Reservation[];
 
   @BeforeInsert()
   @BeforeUpdate()
