@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Raw } from 'typeorm';
+import { Repository, Raw, Between } from 'typeorm';
 import { Inject, Injectable } from '@nestjs/common';
 import { Reservation } from './entities/reservation.entity';
 import { User } from '../users/entities/user.entity';
@@ -24,6 +24,38 @@ export class ReservationService {
   // 예약하기
   async createReservation(user: User, createRestaurantInput: CreateReservationInput): Promise<CreateReservationOutput> {
     try {
+      const startTimeCheck = await this.RRepository.find({
+        where: {
+          roomId: createRestaurantInput.roomId,
+          startAt: Raw((startAt) => `${startAt} < timestamp :startTime`, {
+            startTime: createRestaurantInput.startAt,
+          }),
+          endAt: Raw((endAt) => `${endAt} > timestamp :startTime`, {
+            startTime: createRestaurantInput.startAt,
+          }),
+        },
+      });
+
+      if (startTimeCheck.length > 0) {
+        return { ok: false, error: 'startTime' };
+      }
+
+      const endTimeCheck = await this.RRepository.find({
+        where: {
+          roomId: createRestaurantInput.roomId,
+          startAt: Raw((startAt) => `${startAt} < timestamp :endTime`, {
+            endTime: createRestaurantInput.endAt,
+          }),
+          endAt: Raw((endAt) => `${endAt} > timestamp :endTime`, {
+            endTime: createRestaurantInput.endAt,
+          }),
+        },
+      });
+
+      if (endTimeCheck.length > 0) {
+        return { ok: false, error: 'endTime' };
+      }
+
       const reservation = this.RRepository.create(createRestaurantInput);
       reservation.host = user;
 
