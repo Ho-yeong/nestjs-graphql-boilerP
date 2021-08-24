@@ -69,6 +69,26 @@ export class UsersService {
     }
   }
 
+  async editAccount({ id, email, name, team }: CreateAccountInput): Promise<CoreOutput> {
+    try {
+      const user = await this.users.findOne(id);
+      if (!user) {
+        return { ok: false, error: 'User not found' };
+      }
+
+      user.email = email;
+      user.name = name;
+      user.team = team;
+
+      await this.users.update(id, user);
+
+      return { ok: true };
+    } catch (err) {
+      console.log(err);
+      return { ok: false, error: "Couldn't create account" };
+    }
+  }
+
   async login({ email, password }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
     //check if the password is correct
     // make a JWT and give it to the user

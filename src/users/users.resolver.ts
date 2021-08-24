@@ -45,6 +45,13 @@ export class UsersResolver {
   }
 
   @Mutation((returns) => CoreOutput)
+  @Role(['Admin'])
+  editAccount(@Args('input') createAccountInput: CreateAccountInput): Promise<CoreOutput> {
+    return this.usersService.editAccount(createAccountInput);
+  }
+
+  @Mutation((returns) => CoreOutput)
+  @Role(['Admin'])
   deleteAccount(@Args('input') deleteAccountInput: DeleteAccountInput): Promise<CoreOutput> {
     return this.usersService.deleteAccount(deleteAccountInput);
   }
