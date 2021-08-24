@@ -45,7 +45,7 @@ export class UsersResolver {
   }
 
   @Mutation((returns) => CoreOutput)
-  deleteAccout(@Args('input') deleteAccountInput: DeleteAccountInput): Promise<CoreOutput> {
+  deleteAccount(@Args('input') deleteAccountInput: DeleteAccountInput): Promise<CoreOutput> {
     return this.usersService.deleteAccount(deleteAccountInput);
   }
 

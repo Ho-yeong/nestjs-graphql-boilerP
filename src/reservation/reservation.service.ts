@@ -25,7 +25,6 @@ export class ReservationService {
   async createReservation(user: User, createRestaurantInput: CreateReservationInput): Promise<CreateReservationOutput> {
     try {
       const reservation = this.RRepository.create(createRestaurantInput);
-      console.log(user);
       reservation.host = user;
 
       await this.RRepository.save(reservation);
@@ -94,6 +93,7 @@ export class ReservationService {
       }
 
       await this.RRepository.delete(id);
+      await this.availableRoomsScheduler();
 
       return { ok: true };
     } catch (err) {

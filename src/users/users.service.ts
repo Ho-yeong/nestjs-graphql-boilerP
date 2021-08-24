@@ -12,6 +12,7 @@ import { PUB_SUB } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { DeleteAccountInput } from '../common/dtos/deleteAccount.dto';
 import { EditPasswordInput } from './dtos/editPassword.dto';
+import { UserRole } from './entities/users.constants';
 
 @Injectable()
 export class UsersService {
@@ -23,7 +24,7 @@ export class UsersService {
 
   async getAllUsers(): Promise<GetAllUsersOutput> {
     try {
-      const users = await this.users.find();
+      const users = await this.users.find({ order: { id: 'ASC' } });
 
       return { ok: true, users };
     } catch (error) {
@@ -55,7 +56,11 @@ export class UsersService {
         return { ok: false, error: 'already exist' };
       }
 
-      await this.users.save(this.users.create(input));
+      const newAccount = this.users.create(input);
+      newAccount.password = '1234';
+      newAccount.role = UserRole.Member;
+
+      await this.users.save(newAccount);
 
       return { ok: true };
     } catch (err) {
