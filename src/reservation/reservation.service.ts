@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Raw, Between } from 'typeorm';
+import { Repository, Raw, LessThan, MoreThan } from 'typeorm';
 import { Inject, Injectable } from '@nestjs/common';
 import { Reservation } from './entities/reservation.entity';
 import { User } from '../users/entities/user.entity';
@@ -9,7 +9,7 @@ import { DeleteReservationInput } from './dtos/deleteReservation.dto';
 import { CoreOutput } from '../common/dtos/output.dto';
 import { UserRole } from '../users/entities/users.constants';
 import { GetMyReservationOutput } from './dtos/getMyReservation.dto';
-import { AVAILABLE_ROOMS, PUB_SUB } from '../common/common.constants';
+import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { Cron } from '@nestjs/schedule';
 
@@ -69,6 +69,7 @@ export class ReservationService {
       }
 
       await this.availableRoomsScheduler();
+      await this.getTodayReservationsScheduler();
       return { ok: true, reservation };
     } catch (err) {
       return { ok: false, error: "Couldn't create a reservation" };
@@ -126,10 +127,38 @@ export class ReservationService {
 
       await this.RRepository.delete(id);
       await this.availableRoomsScheduler();
-
+      await this.getTodayReservationsScheduler();
       return { ok: true };
     } catch (err) {
       return { ok: false, error: "Couldn't delete a reservation" };
+    }
+  }
+
+  // 오늘 날짜 기준 모든 회의실 예약 조회
+  async getTodayReservations(): Promise<GetReservationOutput> {
+    try {
+      const reservations = await this.getTodayRooms();
+      if (!reservations) {
+        return { ok: false };
+      }
+
+      return { ok: true, reservations };
+    } catch (err) {
+      console.log(err);
+      return { ok: false, error: "Couldn't get reservations" };
+    }
+  }
+
+  async getTodayReservationsScheduler() {
+    try {
+      const reservations = await this.getTodayRooms();
+      if (!reservations) {
+        return;
+      }
+
+      await this.pubSub.publish(TODAY_ROOMS, reservations);
+    } catch (err) {
+      console.log(err);
     }
   }
 
@@ -148,7 +177,7 @@ export class ReservationService {
   // 현재시간 기준 예약된 회의실 모두 조회
   async getAvailableRooms(): Promise<GetReservationOutput> {
     try {
-      const reservations = await this.getRooms();
+      const reservations = await this.getCurrentRooms();
       if (!reservations) {
         throw new Error();
       }
@@ -163,7 +192,7 @@ export class ReservationService {
   @Cron('*/30 * * * *')
   async availableRoomsScheduler() {
     try {
-      const reservations = await this.getRooms();
+      const reservations = await this.getCurrentRooms();
       if (!reservations) {
         return;
       }
@@ -174,7 +203,7 @@ export class ReservationService {
     }
   }
 
-  async getRooms(): Promise<Reservation[]> {
+  async getCurrentRooms(): Promise<Reservation[]> {
     try {
       const reservations = await this.RRepository.find({
         where: {
@@ -198,5 +227,37 @@ export class ReservationService {
       return;
     }
   }
+  async getTodayRooms(): Promise<Reservation[]> {
+    const today = new Date();
+    const utc = today.getTime() + today.getTimezoneOffset() * 60 * 1000;
+
+    const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+    const kr_curr = new Date(utc + KR_TIME_DIFF);
+
+    try {
+      const reservations = await this.RRepository.find({
+        where: {
+          startAt: MoreThan(`${kr_curr.getFullYear()}-${kr_curr.getMonth() + 1}-${kr_curr.getDate()} 07:00:00`),
+          endAt: LessThan(`${kr_curr.getFullYear()}-${kr_curr.getMonth() + 1}-${kr_curr.getDate()} 23:59:59`),
+        },
+        relations: ['host'],
+      });
+      console.log(reservations);
+
+      for (const i of reservations) {
+        for (const p of i.participantIds) {
+          const parti = await this.userRepository.findOne(p);
+          if (!i.participants) {
+            i.participants = [];
+          }
+          i.participants.push(parti);
+        }
+      }
+      return reservations;
+    } catch (err) {
+      return;
+    }
+  }
+
   //TODO 예약 시간 변경
 }

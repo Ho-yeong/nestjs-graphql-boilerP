@@ -9,7 +9,7 @@ import { CoreOutput } from '../common/dtos/output.dto';
 import { DeleteReservationInput } from './dtos/deleteReservation.dto';
 import { GetMyReservationOutput } from './dtos/getMyReservation.dto';
 import { Inject } from '@nestjs/common';
-import { AVAILABLE_ROOMS, PUB_SUB } from '../common/common.constants';
+import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { Reservation } from './entities/reservation.entity';
 
@@ -46,7 +46,6 @@ export class ReservationResolver {
 
   // 첫 화면 회의실 상태 요청
   // 이후는 subscript 로 해결
-
   @Subscription((returns) => [Reservation], {
     resolve: (payload) => {
       return payload;
@@ -61,5 +60,21 @@ export class ReservationResolver {
   @Role(['Any'])
   getAvailableRooms() {
     return this.reserveService.getAvailableRooms();
+  }
+
+  @Subscription((returns) => [Reservation], {
+    resolve: (payload) => {
+      return payload;
+    },
+  })
+  @Role(['Any'])
+  getTodayRoomsSubscription() {
+    return this.pubSub.asyncIterator(TODAY_ROOMS);
+  }
+
+  @Query((returns) => GetReservationOutput)
+  @Role(['Any'])
+  getTodayRooms() {
+    return this.reserveService.getTodayReservations();
   }
 }

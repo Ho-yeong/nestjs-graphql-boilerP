@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
@@ -8,8 +8,6 @@ import { GetAllUsersOutput } from './dtos/getAllUsers.dto';
 import { LoginInput } from '../common/dtos/login.dto';
 import { JwtService } from '../jwt/jwt.service';
 import { UserProfileOutput } from '../common/dtos/userProfile.dto';
-import { PUB_SUB } from '../common/common.constants';
-import { PubSub } from 'graphql-subscriptions';
 import { DeleteAccountInput } from '../common/dtos/deleteAccount.dto';
 import { EditPasswordInput } from './dtos/editPassword.dto';
 import { UserRole } from './entities/users.constants';
@@ -18,7 +16,6 @@ import { UserRole } from './entities/users.constants';
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
-    @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -110,7 +107,6 @@ export class UsersService {
       }
       const token = this.jwtService.sign({ id: user.id });
 
-      await this.pubSub.publish('test', { test: { ...user } });
       return {
         ok: true,
         token,
