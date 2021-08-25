@@ -229,20 +229,14 @@ export class ReservationService {
   }
   async getTodayRooms(): Promise<Reservation[]> {
     const today = new Date();
-    const utc = today.getTime() + today.getTimezoneOffset() * 60 * 1000;
-
-    const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-    const kr_curr = new Date(utc + KR_TIME_DIFF);
-
     try {
       const reservations = await this.RRepository.find({
         where: {
-          startAt: MoreThan(`${kr_curr.getFullYear()}-${kr_curr.getMonth() + 1}-${kr_curr.getDate()} 07:00:00`),
-          endAt: LessThan(`${kr_curr.getFullYear()}-${kr_curr.getMonth() + 1}-${kr_curr.getDate()} 23:59:59`),
+          startAt: MoreThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 06:59:59`),
+          endAt: LessThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate() + 1} 00:00:00`),
         },
         relations: ['host'],
       });
-      console.log(reservations);
 
       for (const i of reservations) {
         for (const p of i.participantIds) {
@@ -253,6 +247,7 @@ export class ReservationService {
           i.participants.push(parti);
         }
       }
+
       return reservations;
     } catch (err) {
       return;
