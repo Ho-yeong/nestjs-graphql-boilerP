@@ -12,6 +12,7 @@ import { GetMyReservationOutput } from './dtos/getMyReservation.dto';
 import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { Cron } from '@nestjs/schedule';
+import { EditReservationInput } from './dtos/editReservation.dto';
 
 @Injectable()
 export class ReservationService {
@@ -255,4 +256,30 @@ export class ReservationService {
   }
 
   //TODO 예약 시간 변경
+  async editReservation(user: User, { id, startAt, endAt }: EditReservationInput): Promise<CoreOutput> {
+    try {
+      const reservation = await this.RRepository.findOne(id, { relations: ['host'] });
+      if (!reservation) {
+        return { ok: false, error: 'Reservation not found' };
+      }
+
+      let flag = true;
+      if (reservation.host.id !== user.id) {
+        flag = false;
+      }
+      if (user.role == UserRole.Admin) {
+        flag = true;
+      }
+
+      if (!flag) {
+        return { ok: false, error: 'Authentication error' };
+      }
+
+      await this.RRepository.update(id, { startAt, endAt });
+
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: "Couldn't modify a reservation" };
+    }
+  }
 }

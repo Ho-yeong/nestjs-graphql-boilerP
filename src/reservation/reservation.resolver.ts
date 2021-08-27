@@ -12,6 +12,7 @@ import { Inject } from '@nestjs/common';
 import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { Reservation } from './entities/reservation.entity';
+import { EditReservationInput } from './dtos/editReservation.dto';
 
 @Resolver()
 export class ReservationResolver {
@@ -76,5 +77,11 @@ export class ReservationResolver {
   @Role(['Any'])
   getTodayRooms() {
     return this.reserveService.getTodayReservations();
+  }
+
+  @Mutation((returns) => CoreOutput)
+  @Role(['Member', 'Admin'])
+  editReservation(@Args('input') editReservationInput: EditReservationInput, @AuthUser() user: User) {
+    return this.reserveService.editReservation(user, editReservationInput);
   }
 }
