@@ -233,8 +233,8 @@ export class ReservationService {
     try {
       const reservations = await this.RRepository.find({
         where: {
-          startAt: MoreThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 06:59:59`),
-          endAt: LessThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate() + 1} 00:00:00`),
+          startAt: MoreThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate() - 7} 06:59:59`),
+          endAt: LessThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate() + 7} 00:00:00`),
         },
         relations: ['host'],
       });
