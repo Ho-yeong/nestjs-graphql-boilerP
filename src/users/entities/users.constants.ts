@@ -8,6 +8,7 @@ export enum UserTeam {
   PD = 'PD',
   AD = 'AD',
   TD = 'TD',
+  PM = 'PM',
   Server = 'Server',
   Client = 'Client',
   Plan = 'Plan',
