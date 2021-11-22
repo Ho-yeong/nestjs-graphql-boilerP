@@ -11,6 +11,7 @@ import { JwtModule } from './jwt/jwt.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { Reservation } from './reservation/entities/reservation.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CommonModule,
     ReservationModule,
     ScheduleModule.forRoot(),
+    SocketModule,
   ],
   controllers: [],
   providers: [],
