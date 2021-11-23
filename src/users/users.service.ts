@@ -1,27 +1,76 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { CreateAccountInput } from './dtos/createAccount.dto';
 import { CoreOutput } from '../common/dtos/output.dto';
-import { GetAllUsersOutput } from './dtos/getAllUsers.dto';
+import { AllUserOutputProp, GetAllUsersOutput } from './dtos/getAllUsers.dto';
 import { LoginInput } from '../common/dtos/login.dto';
 import { JwtService } from '../jwt/jwt.service';
 import { UserProfileOutput } from '../common/dtos/userProfile.dto';
 import { DeleteAccountInput } from '../common/dtos/deleteAccount.dto';
 import { EditPasswordInput } from './dtos/editPassword.dto';
 import { UserRole } from './entities/users.constants';
+import { Attendance } from '../attendance/entities/attendance.entity';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Attendance) private readonly ARepo: Repository<Attendance>,
     private readonly jwtService: JwtService,
   ) {}
 
   async getAllUsers(): Promise<GetAllUsersOutput> {
     try {
-      const users = await this.users.find({ order: { id: 'ASC' } });
+      const usersData = await this.users.find({ order: { id: 'ASC' } });
+
+      const today = new Date();
+      const thisMonth = new Date(`${today.getFullYear()}-${today.getMonth() + 1}`);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+      // 이번주 월요일
+      const mon = moment(today).startOf('isoWeek');
+      const monDate = mon.toDate().getDate();
+      // 이번주 일요일
+      const sun = mon.add(6, 'days');
+      const sunDate = sun.toDate().getDate();
+
+      const users: AllUserOutputProp[] = [];
+
+      for (const i of usersData) {
+        let weekly = 0;
+        let monthlyTime = 0;
+        let tmp = new AllUserOutputProp();
+
+        const data = await this.ARepo.find({ where: { userId: i.id, workStart: MoreThan(thisMonth) } });
+
+        for (let i = 1; i <= lastDay; i++) {
+          let workTime = 0;
+          const dayData = data.find((v) => v.workStart.getDate() === i);
+          if (dayData) {
+            if (dayData.workEnd) {
+              const t1 = moment(dayData.workEnd);
+              const t2 = moment(dayData.workStart);
+              const diff = moment.duration(t1.diff(t2)).asHours();
+              workTime = Math.ceil(diff - 2);
+            }
+          }
+          if (i >= monDate && i <= sunDate) {
+            weekly += workTime;
+          }
+          monthlyTime += workTime;
+        }
+
+        tmp = {
+          ...i,
+          weekly: weekly,
+          monthly: monthlyTime,
+        };
+
+        users.push(tmp);
+      }
 
       return { ok: true, users };
     } catch (error) {
@@ -37,11 +86,13 @@ export class UsersService {
           select: ['id', 'email', 'role', 'team', 'name'],
         },
       );
+
       return {
         ok: true,
         user,
       };
     } catch (error) {
+      console.log(error);
       return { ok: false, error: 'User not found' };
     }
   }

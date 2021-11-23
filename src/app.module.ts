@@ -12,6 +12,11 @@ import { ReservationModule } from './reservation/reservation.module';
 import { Reservation } from './reservation/entities/reservation.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SocketModule } from './socket/socket.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { Attendance } from './attendance/entities/attendance.entity';
+import { Request } from './attendance/entities/request.entity';
+import { BotModule } from './bot/bot.module';
+import { Vacation } from './attendance/entities/vacation.entity';
 
 @Module({
   imports: [
@@ -43,7 +48,7 @@ import { SocketModule } from './socket/socket.module';
           }),
       synchronize: true,
       logging: process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
-      entities: [User, Reservation],
+      entities: [User, Reservation, Attendance, Request, Vacation],
       charset: 'utf8',
     }),
     GraphQLModule.forRoot({
@@ -63,6 +68,11 @@ import { SocketModule } from './socket/socket.module';
     ReservationModule,
     ScheduleModule.forRoot(),
     SocketModule,
+    AttendanceModule,
+    BotModule.forRoot({
+      AppKey: process.env.BOTKEY,
+      ApiUrl: process.env.API_URL,
+    }),
   ],
   controllers: [],
   providers: [],
