@@ -19,7 +19,6 @@ import {
   GetUserMonthlyWorkInput,
   GetUserMonthlyWorkOutput,
 } from './dtos/getUserMonthlyWork.dto';
-import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 
 @Injectable()
 export class AttendanceService {
@@ -109,10 +108,25 @@ export class AttendanceService {
         const dayData = data.find((v) => v.workStart.getDate() === i);
         if (dayData) {
           if (dayData.workEnd) {
+            let mealTime = 2;
+            // 점심시간
+            if (
+              dayData.workStart >
+              moment(
+                new Date(
+                  `${dayData.workStart.getFullYear()}-${
+                    dayData.workStart.getMonth() + 1
+                  }-${dayData.workStart.getDate()} 14:00:00`,
+                ),
+              ).toDate()
+            ) {
+              mealTime = 1;
+            }
+
             const t1 = moment(dayData.workEnd);
             const t2 = moment(dayData.workStart);
             const diff = moment.duration(t1.diff(t2)).asHours();
-            const result = Math.ceil(diff - 2);
+            const result = Math.ceil(diff - mealTime);
             tmp.workTime = result < 0 ? 0 : result;
           }
         }
@@ -214,7 +228,7 @@ export class AttendanceService {
 
       await this.botService.sendMessageByEmail(
         targetUser.email,
-        `${targetUser.name}님의 ${textBlock} 수정 요청이 ${handleUser.name}님에 의해처리되었습니다. 👍`,
+        `${targetUser.name}님의 ${textBlock} 수정 요청이 ${handleUser.name}님에 의해 처리되었습니다. 👍`,
       );
 
       return { ok: true };
@@ -283,15 +297,65 @@ export class AttendanceService {
       }
 
       let num = 0.5;
-      if (type === VacationEnum.DayOff) {
-        num = 1;
-      }
+      let typeText = '';
 
-      await this.URepo.update(userId, {
-        vacation: () => `vacation + ${num}`,
+      switch (type) {
+        case VacationEnum.DayOff:
+          num = 1;
+          typeText = '연차';
+          break;
+        case VacationEnum.AMOff:
+          typeText = '오전 반차';
+          break;
+        case VacationEnum.PMOff:
+          typeText = '오후 반차';
+          break;
+      }
+      console.log(date);
+      const data = await this.VRepo.findOne({
+        where: {
+          userId,
+          date,
+        },
       });
 
-      await this.VRepo.insert(this.VRepo.create({ userId, type, date }));
+      if (data) {
+        if (
+          (data.type === VacationEnum.AMOff && type === VacationEnum.DayOff) ||
+          (data.type === VacationEnum.PMOff && type === VacationEnum.DayOff)
+        ) {
+          await this.URepo.update(userId, {
+            vacation: () => `vacation + 0.5`,
+          });
+        } else if (
+          (data.type === VacationEnum.DayOff && type === VacationEnum.AMOff) ||
+          (data.type === VacationEnum.DayOff && type === VacationEnum.PMOff)
+        ) {
+          await this.URepo.update(userId, {
+            vacation: () => `vacation - 0.5`,
+          });
+        }
+
+        await this.VRepo.update(data.id, { date, type });
+
+        await this.botService.sendMessageByEmail(
+          user.email,
+          `${moment(date).format('MM월 DD일')} ${typeText}가 처리되었습니다. 👍`,
+        );
+
+        return { ok: true, error: 'reload' };
+      } else {
+        await this.URepo.update(userId, {
+          vacation: () => `vacation + ${num}`,
+        });
+
+        await this.botService.sendMessageByEmail(
+          user.email,
+          `${moment(date).format('MM월 DD일')} ${typeText}가 처리되었습니다. 👍`,
+        );
+
+        await this.VRepo.insert(this.VRepo.create({ userId, type, date }));
+      }
 
       return { ok: true };
     } catch (error) {
