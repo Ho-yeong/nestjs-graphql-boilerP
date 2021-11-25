@@ -5,7 +5,6 @@ const express = require('express');
 const fs = require('fs');
 const spdy = require('spdy');
 import { ExpressAdapter } from '@nestjs/platform-express';
-import { ResponseInterceptor } from './auth/reponse.interceptor';
 
 async function bootstrap() {
   const expressApp = express();
@@ -19,7 +18,6 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
   app.useGlobalPipes(new ValidationPipe());
-  app.useGlobalInterceptors(new ResponseInterceptor());
   await app.init();
   await server.listen(process.env.PORT || 433, '0.0.0.0');
 }

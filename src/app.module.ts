@@ -17,6 +17,8 @@ import { Attendance } from './attendance/entities/attendance.entity';
 import { Request } from './attendance/entities/request.entity';
 import { BotModule } from './bot/bot.module';
 import { Vacation } from './attendance/entities/vacation.entity';
+import { ResponseInterceptor } from './auth/reponse.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -76,6 +78,11 @@ import { Vacation } from './attendance/entities/vacation.entity';
     }),
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule {}
