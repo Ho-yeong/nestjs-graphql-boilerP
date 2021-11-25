@@ -53,6 +53,7 @@ import { Vacation } from './attendance/entities/vacation.entity';
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: true,
+      playground: false,
       installSubscriptionHandlers: true,
       context: ({ req, connection }) => {
         const TOKEN_KEY = 'x-jwt';
