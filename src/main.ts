@@ -19,7 +19,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
   app.useGlobalPipes(new ValidationPipe());
   await app.init();
-  await server.listen(process.env.PORT || 4100);
+  await server.listen(process.env.PORT || 433, '0.0.0.0');
 }
 
 bootstrap().then((r) => {

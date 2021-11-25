@@ -52,6 +52,7 @@ export class AttendanceService {
       const data = await this.ARepo.find({
         where: {
           workStart: MoreThan(thisMonth),
+          userId,
         },
       });
 
@@ -97,6 +98,7 @@ export class AttendanceService {
       const data = await this.ARepo.find({
         where: {
           workStart: Between(targetMonth, targetMonthLastDay),
+          userId,
         },
       });
       const monthly: AttendanceMonthlyData[] = [];
@@ -289,7 +291,7 @@ export class AttendanceService {
   }
 
   // 연차, 반차 수정
-  async modifyVacation({ userId, type, date }: ModifyVacationInput): Promise<ModifyVacationOutput> {
+  async modifyVacation({ userId, type, date }: ModifyVacationInput, authUser: User): Promise<ModifyVacationOutput> {
     try {
       const user = await this.URepo.findOne(userId);
       if (!user) {
@@ -311,7 +313,6 @@ export class AttendanceService {
           typeText = '오후 반차';
           break;
       }
-      console.log(date);
       const data = await this.VRepo.findOne({
         where: {
           userId,
@@ -343,6 +344,11 @@ export class AttendanceService {
           `${moment(date).format('MM월 DD일')} ${typeText}가 처리되었습니다. 👍`,
         );
 
+        await this.botService.sendMessageByEmail(
+          authUser.email,
+          `[${moment(date).format('MM월 DD일')}] ${user.name}님의 ${typeText}를 처리하셨습니다. 👍`,
+        );
+
         return { ok: true, error: 'reload' };
       } else {
         await this.URepo.update(userId, {
@@ -354,11 +360,17 @@ export class AttendanceService {
           `${moment(date).format('MM월 DD일')} ${typeText}가 처리되었습니다. 👍`,
         );
 
+        await this.botService.sendMessageByEmail(
+          authUser.email,
+          `[${moment(date).format('MM월 DD일')}]${user.name}님의 ${typeText}를 처리하셨습니다.. 👍`,
+        );
+
         await this.VRepo.insert(this.VRepo.create({ userId, type, date }));
       }
 
       return { ok: true };
     } catch (error) {
+      console.log(error);
       return { ok: false, error: 'vacation modify failed' };
     }
   }

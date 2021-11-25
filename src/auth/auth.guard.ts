@@ -1,7 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { Reflector } from '@nestjs/core';
-import { AllowedRoles } from './role.decorator';
 import { JwtService } from '../jwt/jwt.service';
 import { UsersService } from '../users/users.service';
 
@@ -14,10 +13,6 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext) {
-    const roles = this.reflector.get<AllowedRoles>('roles', context.getHandler());
-    if (!roles) {
-      return true;
-    }
     const gqlContext = GqlExecutionContext.create(context).getContext();
     const token = gqlContext.token;
     if (token) {
@@ -30,14 +25,14 @@ export class AuthGuard implements CanActivate {
         }
         gqlContext['user'] = user;
 
-        if (roles.includes('Any')) {
-          return true;
-        }
-        return roles.includes(user.role);
+        return true;
       } else {
         return false;
       }
     } else {
+      if (gqlContext.req.body.query.split('\n')[1].substring(2, 7) === 'login') {
+        return true;
+      }
       return false;
     }
   }

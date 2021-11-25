@@ -13,6 +13,7 @@ import { EditPasswordInput } from './dtos/editPassword.dto';
 import { UserRole } from './entities/users.constants';
 import { Attendance } from '../attendance/entities/attendance.entity';
 import * as moment from 'moment-timezone';
+import { BotService } from '../bot/bot.service';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,7 @@ export class UsersService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Attendance) private readonly ARepo: Repository<Attendance>,
     private readonly jwtService: JwtService,
+    private readonly botService: BotService,
   ) {}
 
   async getAllUsers(): Promise<GetAllUsersOutput> {
@@ -101,7 +103,16 @@ export class UsersService {
     try {
       const exists = await this.users.findOne(input.id);
       if (exists) {
-        return { ok: false, error: 'already exist' };
+        return { ok: false, error: 'ID is already in use' };
+      }
+
+      const existEmail = await this.users.findOne({
+        where: {
+          email: input.email,
+        },
+      });
+      if (existEmail) {
+        return { ok: false, error: 'Email is already in use' };
       }
 
       const newAccount = this.users.create(input);
@@ -109,6 +120,11 @@ export class UsersService {
       newAccount.role = UserRole.Member;
 
       await this.users.save(newAccount);
+
+      await this.botService.sendMessageByEmail(
+        input.email,
+        `${input.name}님, Vicgame Studios 입사를 축하드립니다 🎉🎉 지금부터 사내페이지(https://localhost:8000) 이용이 가능합니다 `,
+      );
 
       return { ok: true };
     } catch (err) {

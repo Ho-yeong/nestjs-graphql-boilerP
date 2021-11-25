@@ -7,6 +7,9 @@ import { RequestCheckInput, RequestCheckOutput } from './dtos/requestCheck.dto';
 import { RequestInput, RequestOutput } from './dtos/request.dto';
 import { ModifyVacationInput, ModifyVacationOutput } from './dtos/modifyVacation.dto';
 import { GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getUserMonthlyWork.dto';
+import { AuthUser } from '../auth/authUser.decorator';
+import { User } from '../users/entities/user.entity';
+import { CurrentIP } from '../auth/currentIP.decorator';
 
 @Resolver()
 export class AttendanceResolver {
@@ -25,7 +28,7 @@ export class AttendanceResolver {
   }
 
   @Mutation((returns) => DoWorkOutput)
-  async doWork(@Args('input') doWorkInput: DoWorkInput): Promise<DoWorkOutput> {
+  async doWork(@Args('input') doWorkInput: DoWorkInput, @CurrentIP() currentIP: string): Promise<DoWorkOutput> {
     return this.aService.doWork(doWorkInput);
   }
 
@@ -40,12 +43,15 @@ export class AttendanceResolver {
   }
 
   @Mutation((returns) => RequestOutput)
-  async request(@Args('input') requestInput: RequestInput): Promise<RequestOutput> {
+  async request(@Args('input') requestInput: RequestInput, @CurrentIP() currentIP: string): Promise<RequestOutput> {
     return this.aService.request(requestInput);
   }
 
   @Mutation((returns) => ModifyVacationOutput)
-  async modifyVacation(@Args('input') modifyVacationInput: ModifyVacationInput): Promise<ModifyVacationOutput> {
-    return this.aService.modifyVacation(modifyVacationInput);
+  async modifyVacation(
+    @Args('input') modifyVacationInput: ModifyVacationInput,
+    @AuthUser() user: User,
+  ): Promise<ModifyVacationOutput> {
+    return this.aService.modifyVacation(modifyVacationInput, user);
   }
 }
