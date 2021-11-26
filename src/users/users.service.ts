@@ -14,12 +14,15 @@ import { UserRole } from './entities/users.constants';
 import { Attendance } from '../attendance/entities/attendance.entity';
 import * as moment from 'moment-timezone';
 import { BotService } from '../bot/bot.service';
+import { Vacation } from '../attendance/entities/vacation.entity';
+import { VacationEnum } from '../attendance/entities/request.constant';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Attendance) private readonly ARepo: Repository<Attendance>,
+    @InjectRepository(Vacation) private readonly VRepo: Repository<Vacation>,
     private readonly jwtService: JwtService,
     private readonly botService: BotService,
   ) {}
@@ -44,12 +47,29 @@ export class UsersService {
       for (const i of usersData) {
         let weekly = 0;
         let monthlyTime = 0;
+
+        const vacationData = await this.VRepo.find({
+          where: {
+            date: MoreThan(thisMonth),
+            userId: i.id,
+          },
+        });
+
         let tmp = new AllUserOutputProp();
 
         const data = await this.ARepo.find({ where: { userId: i.id, workStart: MoreThan(thisMonth) } });
 
         for (let i = 1; i <= lastDay; i++) {
           let workTime = 0;
+
+          const vData = vacationData.find((v) => v.date.getDate() === i);
+          let vacationWorkTime = 4;
+          if (vData) {
+            if (vData.type === VacationEnum.DayOff) {
+              vacationWorkTime = 8;
+            }
+          }
+
           const dayData = data.find((v) => v.workStart.getDate() === i);
           if (dayData) {
             if (dayData.workEnd) {
@@ -61,8 +81,14 @@ export class UsersService {
           }
           if (i >= monDate && i <= sunDate) {
             weekly += workTime;
+            if (vData) {
+              weekly += vacationWorkTime;
+            }
           }
           monthlyTime += workTime;
+          if (vData) {
+            monthlyTime += vacationWorkTime;
+          }
         }
 
         tmp = {

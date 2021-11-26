@@ -338,7 +338,7 @@ export class AttendanceService {
       await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
       await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
       await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 👍`);
+      await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 🤷‍♂️`);
 
       return { ok: true };
     } catch (error) {
@@ -417,12 +417,12 @@ export class AttendanceService {
 
         await this.botService.sendMessageByEmail(
           user.email,
-          `${moment(date).format('MM월 DD일')} ${typeText}가 처리되었습니다. 👍`,
+          `${moment(date).format('MM월 DD일')} ${typeText}가 처리되었습니다. 🤗`,
         );
 
         await this.botService.sendMessageByEmail(
           authUser.email,
-          `[${moment(date).format('MM월 DD일')}]${user.name}님의 ${typeText}를 처리하셨습니다.. 👍`,
+          `[${moment(date).format('MM월 DD일')}]${user.name}님의 ${typeText}를 처리하셨습니다. 👍`,
         );
 
         const result = await this.VRepo.insert(this.VRepo.create({ userId, type, date }));
