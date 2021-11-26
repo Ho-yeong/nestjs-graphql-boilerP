@@ -38,8 +38,11 @@ export class AttendanceResolver {
   }
 
   @Mutation((returns) => RequestCheckOutput)
-  async requestCheck(@Args('input') requestCheckInput: RequestCheckInput): Promise<RequestCheckOutput> {
-    return this.aService.requestCheck(requestCheckInput);
+  async requestCheck(
+    @Args('input') requestCheckInput: RequestCheckInput,
+    @AuthUser() user: User,
+  ): Promise<RequestCheckOutput> {
+    return this.aService.requestCheck(requestCheckInput, user);
   }
 
   @Mutation((returns) => RequestOutput)

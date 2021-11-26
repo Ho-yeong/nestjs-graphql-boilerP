@@ -67,7 +67,7 @@ export class AttendanceService {
             const t1 = moment(dayData.workEnd);
             const t2 = moment(dayData.workStart);
             const diff = moment.duration(t1.diff(t2)).asHours();
-            workTime = Math.ceil(diff - 2);
+            workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
           }
         }
         if (today.getDate() === i) {
@@ -195,7 +195,7 @@ export class AttendanceService {
   }
 
   // 리퀘스트 체크
-  async requestCheck({ id, userId }: RequestCheckInput): Promise<RequestCheckOutput> {
+  async requestCheck({ id, userId }: RequestCheckInput, user: User): Promise<RequestCheckOutput> {
     try {
       const request = await this.RRepo.findOne(id);
       if (!request) {
@@ -203,11 +203,6 @@ export class AttendanceService {
       }
       const targetUser = await this.URepo.findOne(request.userId);
       if (!targetUser) {
-        return { ok: false, error: 'There is no user information' };
-      }
-
-      const handleUser = await this.URepo.findOne(userId);
-      if (!handleUser) {
         return { ok: false, error: 'There is no user information' };
       }
 
@@ -230,7 +225,7 @@ export class AttendanceService {
 
       await this.botService.sendMessageByEmail(
         targetUser.email,
-        `${targetUser.name}님의 ${textBlock} 수정 요청이 ${handleUser.name}님에 의해 처리되었습니다. 👍`,
+        `${targetUser.name}님의 ${textBlock} 수정 요청이 ${user.name}님에 의해 처리되었습니다. 👍`,
       );
 
       return { ok: true };
