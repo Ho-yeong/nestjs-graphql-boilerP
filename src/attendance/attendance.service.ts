@@ -469,48 +469,45 @@ export class AttendanceService {
       return { ok: false, error: "Delete user's vacation info failed" };
     }
   }
-  @Cron('0 36 20 * * 1-5')
+
+  @Cron('0 05 11 * * 1-5')
   async morningMessage() {
-    await this.botService.sendMessageByEmail(`simon@vicgamestudios.com`, `$님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
+    try {
+      const users = await this.URepo.find();
+
+      const today = new Date();
+      const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 00:00:00`);
+
+      // 전체 유저중에서
+      for (const i of users) {
+        const check = await this.ARepo.findOne({
+          where: {
+            userId: i.id,
+            workStart: LessThan(today),
+          },
+        });
+        // 오늘 출첵 안한 사람
+        if (!check) {
+          const vacation = await this.VRepo.findOne({
+            where: {
+              userId: i.id,
+              date: todayZero,
+            },
+          });
+          // 휴가 쓴 사람
+          if (vacation) {
+            // 하지만 오후 반차
+            if (vacation.type === VacationEnum.PMOff) {
+              await this.botService.sendMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
+            }
+          } else {
+            // 휴가 안쓴 사람
+            await this.botService.sendMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
+          }
+        }
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
-  // @Cron('0 05 11 * * 1-5')
-  // async morningMessage() {
-  //   try {
-  //     const users = await this.URepo.find();
-  //
-  //     const today = new Date();
-  //     const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 00:00:00`);
-  //
-  //     // 전체 유저중에서
-  //     for (const i of users) {
-  //       const check = await this.ARepo.findOne({
-  //         where: {
-  //           userId: i.id,
-  //           workStart: LessThan(today),
-  //         },
-  //       });
-  //       // 오늘 출첵 안한 사람
-  //       if (!check) {
-  //         const vacation = await this.VRepo.findOne({
-  //           where: {
-  //             userId: i.id,
-  //             date: todayZero,
-  //           },
-  //         });
-  //         // 휴가 쓴 사람
-  //         if (vacation) {
-  //           // 하지만 오후 반차
-  //           if (vacation.type === VacationEnum.PMOff) {
-  //             await this.botService.sendMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
-  //           }
-  //         } else {
-  //           // 휴가 안쓴 사람
-  //           await this.botService.sendMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
-  //         }
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
 }
