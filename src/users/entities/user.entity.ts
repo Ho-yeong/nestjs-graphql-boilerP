@@ -40,12 +40,12 @@ export class User extends CoreEntity {
   @IsEnum(UserRole)
   role: UserRole;
 
-  @Column({ default: 0 })
+  @Column({ default: 0, type: 'float' })
   @Field((type) => Number)
   @IsNumber()
   vacation: number;
 
-  @Column({ default: 0, type: 'float' })
+  @Column({ default: 0 })
   @Field((type) => Number)
   @IsNumber()
   totalVacation: number;
