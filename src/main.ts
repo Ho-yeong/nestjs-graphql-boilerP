@@ -10,16 +10,17 @@ async function bootstrap() {
   const expressApp = express();
 
   const options = {
-    key: fs.readFileSync('./privateKey.key'),
-    cert: fs.readFileSync('./certificate.crt'),
+    key: fs.readFileSync('./vicgamestudios.key'),
+    cert: fs.readFileSync('./vicgamestudios.crt'),
   };
 
   const server = spdy.createServer(options, expressApp);
 
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp));
+
   app.useGlobalPipes(new ValidationPipe());
   await app.init();
-  await server.listen(process.env.PORT || 433, '0.0.0.0');
+  await server.listen(process.env.PORT || 443, '0.0.0.0');
 }
 
 bootstrap().then((r) => {

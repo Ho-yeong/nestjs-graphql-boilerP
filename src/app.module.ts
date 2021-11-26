@@ -55,7 +55,6 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: true,
-      playground: false,
       installSubscriptionHandlers: true,
       context: ({ req, connection }) => {
         const TOKEN_KEY = 'x-jwt';
@@ -78,11 +77,6 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     }),
   ],
   controllers: [],
-  providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ResponseInterceptor,
-    },
-  ],
+  providers: [],
 })
 export class AppModule {}
