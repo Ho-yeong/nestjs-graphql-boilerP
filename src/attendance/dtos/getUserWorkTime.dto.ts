@@ -14,6 +14,9 @@ export class GetUserWorkTimeOutput extends CoreOutput {
   vacation?: number;
 
   @Field((type) => Number, { nullable: true })
+  totalVacation?: number;
+
+  @Field((type) => Number, { nullable: true })
   weekly?: number;
 
   @Field((type) => Number, { nullable: true })

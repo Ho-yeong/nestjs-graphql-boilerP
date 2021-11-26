@@ -133,7 +133,7 @@ export class UsersService {
     }
   }
 
-  async editAccount({ id, email, name, team }: CreateAccountInput): Promise<CoreOutput> {
+  async editAccount({ id, email, name, team, totalVacation }: CreateAccountInput): Promise<CoreOutput> {
     try {
       const user = await this.users.findOne(id);
       if (!user) {
@@ -143,6 +143,7 @@ export class UsersService {
       user.email = email;
       user.name = name;
       user.team = team;
+      user.totalVacation = totalVacation;
 
       await this.users.update(id, user);
 

@@ -20,6 +20,9 @@ export class AttendanceMonthlyData {
 
   @Field((type) => Number)
   workTime: number;
+
+  @Field((type) => Number, { nullable: true })
+  vacation?: number;
 }
 
 @ObjectType()

@@ -20,6 +20,9 @@ import {
   GetUserMonthlyWorkOutput,
 } from './dtos/getUserMonthlyWork.dto';
 import { UserRole } from '../users/entities/users.constants';
+import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
+import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
+import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -57,11 +60,28 @@ export class AttendanceService {
         },
       });
 
+      const vacationData = await this.VRepo.find({
+        where: {
+          date: MoreThan(thisMonth),
+          userId,
+        },
+      });
+
       let weekly = 0;
       let monthlyTime = 0;
       let todayWork;
       for (let i = 1; i <= lastDay; i++) {
         let workTime = 0;
+
+        const vData = vacationData.find((v) => v.date.getDate() === i);
+
+        let vacationWorkTime = 4;
+        if (vData) {
+          if (vData.type === VacationEnum.DayOff) {
+            vacationWorkTime = 8;
+          }
+        }
+
         const dayData = data.find((v) => v.workStart.getDate() === i);
         if (dayData) {
           if (dayData.workEnd) {
@@ -76,11 +96,17 @@ export class AttendanceService {
         }
         if (i >= monDate && i <= sunDate) {
           weekly += workTime;
+          if (vData) {
+            weekly += vacationWorkTime;
+          }
         }
         monthlyTime += workTime;
+        if (vData) {
+          monthlyTime += vacationWorkTime;
+        }
       }
 
-      return { ok: true, vacation: user.vacation, weekly, monthlyTime, todayWork };
+      return { ok: true, vacation: user.vacation, totalVacation: user.totalVacation, weekly, monthlyTime, todayWork };
     } catch (error) {
       return { ok: false, error: 'Get user information failed' };
     }
@@ -102,6 +128,14 @@ export class AttendanceService {
           userId,
         },
       });
+
+      const vacationData = await this.VRepo.find({
+        where: {
+          date: Between(targetMonth, targetMonthLastDay),
+          userId,
+        },
+      });
+
       const monthly: AttendanceMonthlyData[] = [];
 
       for (let i = 1; i <= lastDay; i++) {
@@ -109,6 +143,16 @@ export class AttendanceService {
         tmp.name = `${i}`;
         tmp.workTime = 0;
         const dayData = data.find((v) => v.workStart.getDate() === i);
+        const vData = vacationData.find((v) => v.date.getDate() === i);
+
+        if (vData) {
+          let vacationWorkTime = 4;
+          if (vData.type === VacationEnum.DayOff) {
+            vacationWorkTime = 8;
+          }
+          tmp.vacation = vacationWorkTime;
+        }
+
         if (dayData) {
           if (dayData.workEnd) {
             let mealTime = 2;
@@ -138,6 +182,7 @@ export class AttendanceService {
 
       return { ok: true, monthly };
     } catch (error) {
+      console.log(error);
       return { ok: false, error: 'Get user information failed' };
     }
   }
@@ -162,7 +207,7 @@ export class AttendanceService {
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 화이팅하세요 😍`);
       } else {
         const today = new Date();
-        const thisDay = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`);
+        const thisDay = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 00:00:00`);
 
         await this.ARepo.update(
           { userId, workStart: MoreThan(thisDay) },
@@ -196,7 +241,7 @@ export class AttendanceService {
   }
 
   // 리퀘스트 체크
-  async requestCheck({ id, userId }: RequestCheckInput, user: User): Promise<RequestCheckOutput> {
+  async requestCheck({ id, confirm }: RequestCheckInput, user: User): Promise<RequestCheckOutput> {
     try {
       const request = await this.RRepo.findOne(id);
       if (!request) {
@@ -208,6 +253,18 @@ export class AttendanceService {
       }
 
       let textBlock = '출근시간';
+
+      if (!confirm) {
+        await this.RRepo.delete(id);
+        await this.botService.sendMessageByEmail(
+          targetUser.email,
+          `${targetUser.name}님의 ${textBlock} 수정 요청이 ${user.name}님에 의해 거절되었습니다. 👍`,
+        );
+        await this.RRepo.update(id, {
+          check: true,
+        });
+        return { ok: true };
+      }
 
       if (request.workType === WorkType.START) {
         await this.ARepo.update(request.attendanceId, {
@@ -253,8 +310,11 @@ export class AttendanceService {
       const attendance = await this.ARepo.findOne({
         where: {
           workStart: Between(targetDayStart.toDate(), targetDayEnd.toDate()),
+          userId,
         },
       });
+      console.log(userId);
+      console.log(attendance);
       if (!attendance) {
         return { ok: false, error: 'Wrong Access! 관리자에게 문의하세요' };
       }
@@ -275,9 +335,9 @@ export class AttendanceService {
         text = ` 퇴근시간`;
       }
 
-      // await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      // await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      // await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
       await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 👍`);
 
       return { ok: true };
@@ -349,7 +409,7 @@ export class AttendanceService {
           `[${moment(date).format('MM월 DD일')}] ${user.name}님의 ${typeText}를 처리하셨습니다. 👍`,
         );
 
-        return { ok: true, error: 'reload' };
+        return { ok: true, error: String(data.type), id: data.id };
       } else {
         await this.URepo.update(userId, {
           vacation: () => `vacation + ${num}`,
@@ -365,13 +425,47 @@ export class AttendanceService {
           `[${moment(date).format('MM월 DD일')}]${user.name}님의 ${typeText}를 처리하셨습니다.. 👍`,
         );
 
-        await this.VRepo.insert(this.VRepo.create({ userId, type, date }));
+        const result = await this.VRepo.insert(this.VRepo.create({ userId, type, date }));
+        return { ok: true, id: result.raw.insertId };
+      }
+    } catch (error) {
+      return { ok: false, error: 'vacation modify failed' };
+    }
+  }
+
+  async getAllVacations({ userId, month, year }: GetAllVacationInput): Promise<GetAllVacationOutput> {
+    try {
+      const targetMonth = new Date(`${year}-${month}-01 00:00:00`);
+      const lastDay = new Date(year, month, 0).getDate();
+      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay}`);
+
+      const vacations = await this.VRepo.find({
+        where: {
+          date: Between(targetMonth, targetMonthLastDay),
+          userId,
+        },
+        order: {
+          date: 'DESC',
+        },
+      });
+
+      return { ok: true, vacations };
+    } catch (error) {
+      return { ok: false, error: "Get user's vacations failed" };
+    }
+  }
+
+  async deleteVacation({ id }: DeleteVacationInput): Promise<DeleteVacationOutput> {
+    try {
+      const vacation = await this.VRepo.findOne(id);
+      if (!vacation) {
+        return { ok: false, error: 'There is no vacation info' };
       }
 
+      await this.VRepo.delete(id);
       return { ok: true };
     } catch (error) {
-      console.log(error);
-      return { ok: false, error: 'vacation modify failed' };
+      return { ok: false, error: "Delete user's vacation info failed" };
     }
   }
 }

@@ -45,6 +45,11 @@ export class User extends CoreEntity {
   @IsNumber()
   vacation: number;
 
+  @Column({ default: 0 })
+  @Field((type) => Number)
+  @IsNumber()
+  totalVacation: number;
+
   @Field((type) => [Reservation], { nullable: true })
   @OneToMany((type) => Reservation, (reservation) => reservation.host, { nullable: true })
   reservations?: Reservation[];

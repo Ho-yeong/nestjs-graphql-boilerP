@@ -11,6 +11,8 @@ import { AuthUser } from '../auth/authUser.decorator';
 import { User } from '../users/entities/user.entity';
 import { CurrentIP } from '../auth/currentIP.decorator';
 import { COMPANY_IPS } from './ip.constant';
+import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
+import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 
 @Resolver()
 export class AttendanceResolver {
@@ -28,9 +30,15 @@ export class AttendanceResolver {
     return this.aService.getUserMonthlyWork(getUserMonthlyWork);
   }
 
+  @Query((returns) => GetAllVacationOutput)
+  async getAllVacations(@Args('input') getAllVacationInput: GetAllVacationInput): Promise<GetAllVacationOutput> {
+    return this.aService.getAllVacations(getAllVacationInput);
+  }
+
   @Mutation((returns) => DoWorkOutput)
   async doWork(@Args('input') doWorkInput: DoWorkInput, @CurrentIP() currentIP: string): Promise<DoWorkOutput> {
     if (!COMPANY_IPS.includes(currentIP)) {
+      console.log(currentIP);
       return { ok: false, error: '사내 인터넷망에 접속해주세요' };
     }
     return this.aService.doWork(doWorkInput);
@@ -60,5 +68,10 @@ export class AttendanceResolver {
     @AuthUser() user: User,
   ): Promise<ModifyVacationOutput> {
     return this.aService.modifyVacation(modifyVacationInput, user);
+  }
+
+  @Mutation((returns) => DeleteVacationOutput)
+  async deleteVacation(@Args('input') deleteVacationInput: DeleteVacationInput): Promise<DeleteVacationOutput> {
+    return this.aService.deleteVacation(deleteVacationInput);
   }
 }

@@ -20,6 +20,9 @@ export class AllUserOutputProp {
   role: UserRole;
 
   @Field((type) => Number)
+  totalVacation: number;
+
+  @Field((type) => Number)
   vacation: number;
 
   @Field((type) => Number)
