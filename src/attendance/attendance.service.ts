@@ -19,6 +19,7 @@ import {
   GetUserMonthlyWorkInput,
   GetUserMonthlyWorkOutput,
 } from './dtos/getUserMonthlyWork.dto';
+import { UserRole } from '../users/entities/users.constants';
 
 @Injectable()
 export class AttendanceService {
@@ -287,6 +288,10 @@ export class AttendanceService {
 
   // 연차, 반차 수정
   async modifyVacation({ userId, type, date }: ModifyVacationInput, authUser: User): Promise<ModifyVacationOutput> {
+    if (authUser.role !== UserRole.Admin) {
+      return { ok: false, error: 'Access denied' };
+    }
+
     try {
       const user = await this.URepo.findOne(userId);
       if (!user) {
