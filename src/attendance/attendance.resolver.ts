@@ -50,10 +50,7 @@ export class AttendanceResolver {
   }
 
   @Mutation((returns) => RequestOutput)
-  async request(@Args('input') requestInput: RequestInput, @CurrentIP() currentIP: string): Promise<RequestOutput> {
-    if (!COMPANY_IPS.includes(currentIP)) {
-      return { ok: false, error: '사내 인터넷망에 접속해주세요' };
-    }
+  async request(@Args('input') requestInput: RequestInput): Promise<RequestOutput> {
     return this.aService.request(requestInput);
   }
 
