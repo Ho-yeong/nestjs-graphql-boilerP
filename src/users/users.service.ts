@@ -236,6 +236,11 @@ export class UsersService {
       admin.password = password;
       await this.users.save(admin);
 
+      await this.botService.sendMessageByEmail(
+        user.email,
+        `[${moment(new Date()).format('MM월 DD일')}] 비밀번호가 변경되었습니다.`,
+      );
+
       return {
         ok: true,
       };

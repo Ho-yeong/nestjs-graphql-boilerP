@@ -40,10 +40,10 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     this.server.emit('msgToClient', res);
   }
 
-  @Cron('* * * * * *')
-  broadcastTest(@ConnectedSocket() socket: Socket): void {
-    this.server.emit('test-event', { msg: 'broadcast', time: new Date() });
-  }
+  // @Cron('* * * * * *')
+  // broadcastTest(@ConnectedSocket() socket: Socket): void {
+  //   this.server.emit('test-event', { msg: 'broadcast', time: new Date() });
+  // }
 
   afterInit(server: Server) {
     this.logger.log('Init');
