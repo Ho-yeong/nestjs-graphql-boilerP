@@ -314,8 +314,6 @@ export class AttendanceService {
           userId,
         },
       });
-      console.log(userId);
-      console.log(attendance);
       if (!attendance) {
         return { ok: false, error: 'Wrong Access! 관리자에게 문의하세요' };
       }
@@ -498,11 +496,11 @@ export class AttendanceService {
           if (vacation) {
             // 하지만 오후 반차
             if (vacation.type === VacationEnum.PMOff) {
-              await this.botService.sendMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
+              await this.botService.sendBlockMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
             }
           } else {
             // 휴가 안쓴 사람
-            await this.botService.sendMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
+            await this.botService.sendBlockMessageByEmail(i.email, `${i.name}님, 출근 체크 깜빡하지 않으셨나요? 🧐`);
           }
         }
       }

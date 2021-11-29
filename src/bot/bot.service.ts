@@ -56,4 +56,50 @@ export class BotService {
       data,
     });
   }
+
+  async sendBlockMessageByEmail(email: string, message: string): Promise<{ data: Record<string, any> }> {
+    const data = {
+      email,
+      text: message,
+      blocks: [
+        {
+          type: 'text',
+          text: 'text sample',
+          inlines: [
+            {
+              type: 'styled',
+              text: message,
+              bold: true,
+              color: 'default',
+            },
+          ],
+        },
+        {
+          type: 'context',
+          content: {
+            type: 'text',
+            text: '빅게임 스튜디오',
+            inlines: [
+              {
+                type: 'link',
+                text: '빅게임 스튜디오',
+                url: 'https://conf.vicgamestudios.com',
+              },
+            ],
+          },
+          image: {
+            type: 'image_link',
+            url: 'https://www.vicgamestudios.com/careerImg/vic_logo_small.png',
+          },
+        },
+      ],
+    };
+
+    return axios({
+      method: 'post',
+      headers: this.getHeader(),
+      url: this.options.ApiUrl + 'messages.send_by_email',
+      data,
+    });
+  }
 }
