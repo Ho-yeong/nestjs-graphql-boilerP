@@ -13,7 +13,7 @@ import { Socket } from 'socket.io';
 import { Server } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 
-@WebSocketGateway({
+@WebSocketGateway(2505, {
   transports: ['websocket'],
   namespace: 'rooms',
 })
