@@ -13,7 +13,7 @@ import { Socket } from 'socket.io';
 import { Server } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 
-@WebSocketGateway(2505, {
+@WebSocketGateway({
   transports: ['websocket'],
   namespace: 'rooms',
 })
@@ -28,16 +28,12 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     return data;
   }
 
-  @SubscribeMessage('msgToServer')
+  @SubscribeMessage('drawing')
   handleMessage(
-    @MessageBody() data: { msg: string }, // 클라이언트로부터 들어온 데이터
+    @MessageBody() data: { width: number; x: number; y: number; color: string }, // 클라이언트로부터 들어온 데이터
     @ConnectedSocket() client: Socket,
   ) {
-    const res: { msg: string; time: string } = {
-      msg: data.msg,
-      time: new Date(client.handshake.time).toLocaleString(),
-    };
-    this.server.emit('msgToClient', res);
+    this.server.emit('drawing', data);
   }
 
   // @Cron('* * * * * *')
