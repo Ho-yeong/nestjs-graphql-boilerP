@@ -16,6 +16,7 @@ import * as moment from 'moment-timezone';
 import { BotService } from '../bot/bot.service';
 import { Vacation } from '../attendance/entities/vacation.entity';
 import { VacationEnum } from '../attendance/entities/request.constant';
+import { SendMessageInput, SendMessageOutput } from './dtos/sendMessage.dto';
 
 @Injectable()
 export class UsersService {
@@ -279,6 +280,25 @@ export class UsersService {
       return {
         ok: false,
         error: "Couldn't edit password",
+      };
+    }
+  }
+
+  async sendMessage(user: User, { emails, content }: SendMessageInput): Promise<SendMessageOutput> {
+    try {
+      if (user.role !== UserRole.Admin) {
+        return { ok: false, error: 'Authentication failure' };
+      }
+
+      for (const i of emails) {
+        await this.botService.sendMessageByEmailForFinanceTeam(i, content);
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
       };
     }
   }

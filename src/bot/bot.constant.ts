@@ -4,5 +4,6 @@ export const Jimin = 'jimin17@vicgamestudios.com';
 
 export interface BotApiModuleOptions {
   AppKey: string;
+  AppKey2: string;
   ApiUrl: string;
 }

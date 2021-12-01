@@ -13,6 +13,7 @@ import { Role } from '../auth/role.decorator';
 import { AuthUser } from '../auth/authUser.decorator';
 import { DeleteAccountInput } from '../common/dtos/deleteAccount.dto';
 import { EditPasswordInput, EditPasswordOutput } from './dtos/editPassword.dto';
+import { SendMessageInput, SendMessageOutput } from './dtos/sendMessage.dto';
 
 @Resolver()
 export class UsersResolver {
@@ -63,5 +64,14 @@ export class UsersResolver {
     @Args('input') editPasswordInput: EditPasswordInput,
   ): Promise<EditPasswordOutput> {
     return this.usersService.editPassword(authUser, editPasswordInput);
+  }
+
+  @Mutation((returns) => SendMessageOutput)
+  @Role(['Admin'])
+  sendMessage(
+    @AuthUser() authUser: User,
+    @Args('input') sendMessageInput: SendMessageInput,
+  ): Promise<SendMessageOutput> {
+    return this.usersService.sendMessage(authUser, sendMessageInput);
   }
 }

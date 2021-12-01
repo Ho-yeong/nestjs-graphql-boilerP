@@ -13,6 +13,13 @@ export class BotService {
     };
   }
 
+  private getHeaderForBot2(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.options.AppKey2}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
   async findByEmail(email: string): Promise<{ data: Record<string, any> }> {
     return axios({
       method: 'get',
@@ -98,6 +105,19 @@ export class BotService {
     return axios({
       method: 'post',
       headers: this.getHeader(),
+      url: this.options.ApiUrl + 'messages.send_by_email',
+      data,
+    });
+  }
+
+  async sendMessageByEmailForFinanceTeam(email: string, text: string): Promise<{ data: Record<string, any> }> {
+    const data = {
+      email,
+      text,
+    };
+    return axios({
+      method: 'post',
+      headers: this.getHeaderForBot2(),
       url: this.options.ApiUrl + 'messages.send_by_email',
       data,
     });
