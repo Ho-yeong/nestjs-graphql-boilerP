@@ -13,6 +13,7 @@ import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constant
 import { PubSub } from 'graphql-subscriptions';
 import { Cron } from '@nestjs/schedule';
 import { EditReservationInput } from './dtos/editReservation.dto';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class ReservationService {
@@ -230,11 +231,25 @@ export class ReservationService {
   }
   async getTodayRooms(): Promise<Reservation[]> {
     const today = new Date();
+    const thisMonth = new Date(`${today.getFullYear()}-${today.getMonth() + 1}`);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+    // 이번주 월요일
+    const mon = moment(today).startOf('isoWeek');
+    const monDate = mon.toDate().getDate();
+    // 이번주 일요일
+    const sun = mon.add(6, 'days');
+    const sunDate = sun.toDate().getDate();
+
     try {
       const reservations = await this.RRepository.find({
         where: {
-          startAt: MoreThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate() - 7} 06:59:59`),
-          endAt: LessThan(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate() + 7} 00:00:00`),
+          startAt: MoreThan(
+            `${today.getFullYear()}-${today.getMonth() + 1}-${
+              today.getDate() - 7 < 0 ? 1 : today.getDate() - 7
+            } 06:59:59`,
+          ),
+          endAt: LessThan(`${today.getFullYear()}-${today.getMonth() + 1}-${33} 00:00:00`),
         },
         relations: ['host'],
       });
