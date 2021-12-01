@@ -73,7 +73,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     AttendanceModule,
     BotModule.forRoot({
       AppKey: process.env.BOTKEY,
-      AppKey2: process.env.BOTKEY,
+      AppKey2: process.env.BOT2KEY,
       ApiUrl: process.env.API_URL,
     }),
   ],
