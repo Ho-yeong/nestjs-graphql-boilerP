@@ -48,10 +48,48 @@ export class AttendanceService {
 
       // 이번주 월요일
       const mon = moment(today).startOf('isoWeek');
-      const monDate = mon.toDate().getDate();
       // 이번주 일요일
-      const sun = mon.add(6, 'days');
-      const sunDate = sun.toDate().getDate();
+      const sun = moment(today).startOf('isoWeek').add(6, 'days');
+
+      const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+
+      const m = moment(new Date(mon.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
+      const s = moment(new Date(sun.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
+
+      const WeekAttendanceData = await this.ARepo.find({
+        where: {
+          userId,
+          workStart: Between(m, s),
+        },
+      });
+
+      const WeekVacationData = await this.VRepo.find({
+        where: {
+          date: Between(m, s),
+          userId,
+        },
+      });
+
+      let weekly = 0;
+      for (const i of WeekAttendanceData) {
+        let workTime = 0;
+
+        if (i.workEnd) {
+          const t1 = moment(i.workEnd);
+          const t2 = moment(i.workStart);
+          const diff = moment.duration(t1.diff(t2)).asHours();
+          workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
+        }
+        weekly += workTime;
+      }
+
+      for (const i of WeekVacationData) {
+        let vacationTime = 4;
+        if (i.type == VacationEnum.DayOff) {
+          vacationTime = 8;
+        }
+        weekly += vacationTime;
+      }
 
       // 한달
       const data = await this.ARepo.find({
@@ -68,7 +106,6 @@ export class AttendanceService {
         },
       });
 
-      let weekly = 0;
       let monthlyTime = 0;
       let todayWork;
       for (let i = 1; i <= lastDay; i++) {
@@ -95,12 +132,7 @@ export class AttendanceService {
         if (today.getDate() === i) {
           todayWork = dayData;
         }
-        if (i >= monDate && i <= sunDate) {
-          weekly += workTime;
-          if (vData) {
-            weekly += vacationWorkTime;
-          }
-        }
+
         monthlyTime += workTime;
         if (vData) {
           monthlyTime += vacationWorkTime;
@@ -432,6 +464,7 @@ export class AttendanceService {
     }
   }
 
+  // 그래프 그릴때 사용
   async getAllVacations({ userId, month, year }: GetAllVacationInput): Promise<GetAllVacationOutput> {
     try {
       const targetMonth = new Date(`${year}-${month}-01 00:00:00`);

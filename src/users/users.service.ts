@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { MoreThan, Repository } from 'typeorm';
+import { Between, MoreThan, Repository } from 'typeorm';
 import { CreateAccountInput } from './dtos/createAccount.dto';
 import { CoreOutput } from '../common/dtos/output.dto';
 import { AllUserOutputProp, GetAllUsersOutput } from './dtos/getAllUsers.dto';
@@ -37,16 +37,53 @@ export class UsersService {
 
       // 이번주 월요일
       const mon = moment(today).startOf('isoWeek');
-      const monDate = mon.toDate().getDate();
       // 이번주 일요일
       const sun = mon.add(6, 'days');
-      const sunDate = sun.toDate().getDate();
 
       const users: AllUserOutputProp[] = [];
 
       for (const i of usersData) {
         let weekly = 0;
         let monthlyTime = 0;
+
+        const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
+
+        const m = moment(new Date(mon.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
+        const s = moment(new Date(sun.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
+
+        const WeekAttendanceData = await this.ARepo.find({
+          where: {
+            userId: i.id,
+            workStart: Between(m, s),
+          },
+        });
+
+        const WeekVacationData = await this.VRepo.find({
+          where: {
+            date: Between(m, s),
+            userId: i.id,
+          },
+        });
+
+        for (const w of WeekAttendanceData) {
+          let workTime = 0;
+
+          if (w.workEnd) {
+            const t1 = moment(w.workEnd);
+            const t2 = moment(w.workStart);
+            const diff = moment.duration(t1.diff(t2)).asHours();
+            workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
+          }
+          weekly += workTime;
+        }
+
+        for (const i of WeekVacationData) {
+          let vacationTime = 4;
+          if (i.type == VacationEnum.DayOff) {
+            vacationTime = 8;
+          }
+          weekly += vacationTime;
+        }
 
         const vacationData = await this.VRepo.find({
           where: {
@@ -77,12 +114,6 @@ export class UsersService {
               const t2 = moment(dayData.workStart);
               const diff = moment.duration(t1.diff(t2)).asHours();
               workTime = Math.ceil(diff - 2);
-            }
-          }
-          if (i >= monDate && i <= sunDate) {
-            weekly += workTime;
-            if (vData) {
-              weekly += vacationWorkTime;
             }
           }
           monthlyTime += workTime;
