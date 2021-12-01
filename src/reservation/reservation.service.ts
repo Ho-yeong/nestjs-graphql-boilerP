@@ -231,25 +231,43 @@ export class ReservationService {
   }
   async getTodayRooms(): Promise<Reservation[]> {
     const today = new Date();
-    const thisMonth = new Date(`${today.getFullYear()}-${today.getMonth() + 1}`);
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    // 저번 달 마지막 일
+    // 저번달이 작년 12월 일 경우 12월의 마지막일
+    const lastMonthLastDay = new Date(
+      today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear(),
+      today.getMonth() === 0 ? 12 : today.getMonth() + 1,
+      0,
+    ).getDate();
 
-    // 이번주 월요일
-    const mon = moment(today).startOf('isoWeek');
-    const monDate = mon.toDate().getDate();
-    // 이번주 일요일
-    const sun = mon.add(6, 'days');
-    const sunDate = sun.toDate().getDate();
+    // 년
+    const startYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
+    // 월
+    const startMonth =
+      // 작년일때는 12월, 날짜가 저번달로 넘어갈때는 저번달, 아닐경우는 이번달
+      startYear !== today.getFullYear() ? 12 : today.getDate() - 7 < 0 ? today.getMonth() : today.getMonth() + 1;
+    // 일
+    const startDay = today.getDate() - 7 < 0 ? lastMonthLastDay - -(today.getDate() - 7) : today.getDate() - 7;
+
+    // 이번달 마지막 일
+    const thisMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    // 년
+    const endYear = today.getMonth() + 2 === 13 ? today.getFullYear() + 1 : today.getFullYear();
+    // 월
+    const endMonth =
+      today.getDate() + 7 > thisMonthLastDay
+        ? today.getMonth() + 2 === 13
+          ? 1
+          : today.getMonth() + 2
+        : today.getMonth() + 1;
+    // 일
+    const endDay =
+      today.getDate() + 7 > thisMonthLastDay ? today.getDate() + 7 - thisMonthLastDay : today.getDate() + 7;
 
     try {
       const reservations = await this.RRepository.find({
         where: {
-          startAt: MoreThan(
-            `${today.getFullYear()}-${today.getMonth() + 1}-${
-              today.getDate() - 7 < 0 ? 1 : today.getDate() - 7
-            } 06:59:59`,
-          ),
-          endAt: LessThan(`${today.getFullYear()}-${today.getMonth() + 1}-${33} 00:00:00`),
+          startAt: MoreThan(new Date(`${startYear}-${startMonth}-${startDay} 08:59:59`)),
+          endAt: LessThan(new Date(`${endYear}-${endMonth}-${endDay} 00:00:00`)),
         },
         relations: ['host'],
       });

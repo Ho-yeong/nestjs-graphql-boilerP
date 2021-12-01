@@ -21,4 +21,5 @@ export enum UserTeam {
   LQA = 'LQA',
   QA = 'QA',
   PersonnelManagement = 'PersonnelManagement',
+  Marketing = 'Marketing',
 }
