@@ -153,7 +153,7 @@ export class AttendanceService {
       }
       const targetMonth = new Date(`${year}-${month}`);
       const lastDay = new Date(year, month, 0).getDate();
-      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay}`);
+      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay} 23:59:59`);
 
       const data = await this.ARepo.find({
         where: {
