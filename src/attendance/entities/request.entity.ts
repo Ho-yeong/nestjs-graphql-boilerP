@@ -56,7 +56,12 @@ export class Request {
   @Column()
   @Field((type) => Date)
   @IsDate()
-  workTime: Date;
+  workDate: Date;
+
+  @Column()
+  @Field((type) => String)
+  @IsString()
+  workTime: string;
 
   @Column()
   @Field((type) => String)

@@ -285,7 +285,7 @@ export class AttendanceService {
         await this.RRepo.delete(id);
         await this.botService.sendMessageByEmail(
           targetUser.email,
-          `${targetUser.name}님의 ${textBlock} 수정 요청이 ${user.name}님에 의해 거절되었습니다. 👍`,
+          `${targetUser.name}님의 ${textBlock} 수정 요청이 ${user.name}님에 의해 거절되었습니다. 🤔`,
         );
         await this.RRepo.update(id, {
           check: true,
@@ -295,11 +295,19 @@ export class AttendanceService {
 
       if (request.workType === WorkType.START) {
         await this.ARepo.update(request.attendanceId, {
-          workStart: request.workTime,
+          workStart: new Date(
+            `${request.workDate.getFullYear()}-${request.workDate.getMonth() + 1}-${request.workDate.getDate()} ${
+              request.workTime
+            }`,
+          ),
         });
       } else {
         await this.ARepo.update(request.attendanceId, {
-          workEnd: request.workTime,
+          workEnd: new Date(
+            `${request.workDate.getFullYear()}-${request.workDate.getMonth() + 1}-${request.workDate.getDate()} ${
+              request.workTime
+            }`,
+          ),
         });
         textBlock = '퇴근시간';
       }
@@ -320,7 +328,7 @@ export class AttendanceService {
   }
 
   // 출, 퇴근 시간 수정 리퀘스트
-  async request({ userId, workType, workTime, reason }: RequestInput): Promise<RequestOutput> {
+  async request({ userId, workType, workTime, workDate, reason }: RequestInput): Promise<RequestOutput> {
     try {
       const user = await this.URepo.findOne(userId);
       if (!user) {
@@ -328,10 +336,10 @@ export class AttendanceService {
       }
 
       const targetDayStart = moment(
-        `${workTime.getFullYear()}-${workTime.getMonth() + 1}-${workTime.getDate()} 00:00:00`,
+        `${workDate.getFullYear()}-${workDate.getMonth() + 1}-${workDate.getDate()} 00:00:00`,
       );
       const targetDayEnd = moment(
-        `${workTime.getFullYear()}-${workTime.getMonth() + 1}-${workTime.getDate()} 23:59:59`,
+        `${workDate.getFullYear()}-${workDate.getMonth() + 1}-${workDate.getDate()} 23:59:59`,
       );
 
       const attendance = await this.ARepo.findOne({
@@ -350,6 +358,7 @@ export class AttendanceService {
           user,
           attendanceId: attendance.id,
           workType,
+          workDate,
           workTime,
           reason,
         }),
