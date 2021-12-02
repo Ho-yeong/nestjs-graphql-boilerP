@@ -30,10 +30,15 @@ export class AuthGuard implements CanActivate {
         return false;
       }
     } else {
-      if (gqlContext.req.body.query.split('\n')[1].substring(2, 7) === 'login') {
+      const request = context.switchToHttp().getRequest() as Request;
+      if (request && request['route'].path === '/') {
         return true;
       }
-      return false;
+      if (gqlContext.req.body.query.split('\n')[1].substring(2, 7) === 'login') {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 }

@@ -19,6 +19,7 @@ import { BotModule } from './bot/bot.module';
 import { Vacation } from './attendance/entities/vacation.entity';
 import { ResponseInterceptor } from './auth/reponse.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -78,7 +79,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
       ApiUrl: process.env.API_URL,
     }),
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}
