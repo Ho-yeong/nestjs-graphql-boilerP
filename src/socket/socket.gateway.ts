@@ -22,8 +22,9 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('SocketGateway');
 
-  @SubscribeMessage('events')
+  @SubscribeMessage('/')
   handleEvent(@MessageBody() data: string): string {
+    console.log('websocket healthy check');
     return data;
   }
 
