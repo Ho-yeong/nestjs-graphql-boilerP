@@ -7,6 +7,9 @@ export class DoWorkInput {
   @Field((type) => Number)
   userId: number;
 
+  @Field((type) => Number, { nullable: true })
+  workId?: number;
+
   @Field((type) => WorkType)
   workType: WorkType;
 }

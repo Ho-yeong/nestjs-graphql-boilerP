@@ -127,10 +127,9 @@ export class AttendanceService {
             const t2 = moment(dayData.workStart);
             const diff = moment.duration(t1.diff(t2)).asHours();
             workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
+          } else {
+            todayWork = dayData;
           }
-        }
-        if (today.getDate() === i) {
-          todayWork = dayData;
         }
 
         monthlyTime += workTime;
@@ -221,7 +220,7 @@ export class AttendanceService {
   }
 
   // 출근, 퇴근 하기
-  async doWork({ userId, workType }: DoWorkInput): Promise<DoWorkOutput> {
+  async doWork({ userId, workId, workType }: DoWorkInput): Promise<DoWorkOutput> {
     try {
       const user = await this.URepo.findOne(userId);
       if (!user) {
@@ -239,15 +238,9 @@ export class AttendanceService {
 
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 화이팅하세요 😍`);
       } else {
-        const today = new Date();
-        const thisDay = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 00:00:00`);
-
-        await this.ARepo.update(
-          { userId, workStart: MoreThan(thisDay) },
-          {
-            workEnd: new Date(),
-          },
-        );
+        await this.ARepo.update(workId, {
+          workEnd: new Date(),
+        });
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 고생하셨습니다. 🚗`);
       }
 
