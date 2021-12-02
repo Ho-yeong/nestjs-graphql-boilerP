@@ -56,6 +56,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     GraphQLModule.forRoot({
       autoSchemaFile: true,
       installSubscriptionHandlers: true,
+      playground: !!process.env.PORT && true,
       context: ({ req, connection }) => {
         const TOKEN_KEY = 'x-jwt';
         return { token: req ? req.headers[TOKEN_KEY] : connection.context[TOKEN_KEY] };

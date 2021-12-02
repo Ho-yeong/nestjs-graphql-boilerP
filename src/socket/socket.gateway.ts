@@ -11,7 +11,6 @@ import {
 import { Logger } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { Server } from 'typeorm';
-import { Cron } from '@nestjs/schedule';
 
 @WebSocketGateway(2505, {
   transports: ['websocket'],
