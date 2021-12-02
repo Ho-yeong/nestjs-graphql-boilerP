@@ -36,9 +36,8 @@ export class AttendanceResolver {
   }
 
   @Mutation((returns) => DoWorkOutput)
-  async doWork(@Args('input') doWorkInput: DoWorkInput, @CurrentIP() currentIP: string): Promise<DoWorkOutput> {
-    if (!COMPANY_IPS.includes(currentIP)) {
-      console.log(currentIP);
+  async doWork(@Args('input') doWorkInput: DoWorkInput): Promise<DoWorkOutput> {
+    if (!COMPANY_IPS.includes(doWorkInput.ip)) {
       return { ok: false, error: '사내 인터넷망에 접속해주세요' };
     }
     return this.aService.doWork(doWorkInput);

@@ -10,6 +10,9 @@ export class DoWorkInput {
   @Field((type) => Number, { nullable: true })
   workId?: number;
 
+  @Field((type) => String, { nullable: true })
+  ip: string;
+
   @Field((type) => WorkType)
   workType: WorkType;
 }
