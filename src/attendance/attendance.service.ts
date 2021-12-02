@@ -127,7 +127,8 @@ export class AttendanceService {
             const t2 = moment(dayData.workStart);
             const diff = moment.duration(t1.diff(t2)).asHours();
             workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
-          } else {
+          }
+          if (today.getDate() === dayData.workStart.getDate()) {
             todayWork = dayData;
           }
         }
