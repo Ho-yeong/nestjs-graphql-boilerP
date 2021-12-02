@@ -59,9 +59,9 @@ export class Request {
   workDate: Date;
 
   @Column()
-  @Field((type) => String)
-  @IsString()
-  workTime: string;
+  @Field((type) => Date)
+  @IsDate()
+  WillFixTime: Date;
 
   @Column()
   @Field((type) => String)

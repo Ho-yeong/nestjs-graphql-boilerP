@@ -3,7 +3,7 @@ import { Request } from '../entities/request.entity';
 import { CoreOutput } from '../../common/dtos/output.dto';
 
 @InputType()
-export class RequestInput extends PickType(Request, ['userId', 'workType', 'workDate', 'reason', 'workTime']) {}
+export class RequestInput extends PickType(Request, ['userId', 'workType', 'workDate', 'reason', 'WillFixTime']) {}
 
 @ObjectType()
 export class RequestOutput extends CoreOutput {}

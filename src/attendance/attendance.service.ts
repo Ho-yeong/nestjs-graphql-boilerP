@@ -295,19 +295,11 @@ export class AttendanceService {
 
       if (request.workType === WorkType.START) {
         await this.ARepo.update(request.attendanceId, {
-          workStart: new Date(
-            `${request.workDate.getFullYear()}-${request.workDate.getMonth() + 1}-${request.workDate.getDate()} ${
-              request.workTime
-            }`,
-          ),
+          workStart: request.WillFixTime,
         });
       } else {
         await this.ARepo.update(request.attendanceId, {
-          workEnd: new Date(
-            `${request.workDate.getFullYear()}-${request.workDate.getMonth() + 1}-${request.workDate.getDate()} ${
-              request.workTime
-            }`,
-          ),
+          workEnd: request.WillFixTime,
         });
         textBlock = '퇴근시간';
       }
@@ -328,7 +320,7 @@ export class AttendanceService {
   }
 
   // 출, 퇴근 시간 수정 리퀘스트
-  async request({ userId, workType, workTime, workDate, reason }: RequestInput): Promise<RequestOutput> {
+  async request({ userId, workType, WillFixTime, workDate, reason }: RequestInput): Promise<RequestOutput> {
     try {
       const user = await this.URepo.findOne(userId);
       if (!user) {
@@ -359,7 +351,7 @@ export class AttendanceService {
           attendanceId: attendance.id,
           workType,
           workDate,
-          workTime,
+          WillFixTime,
           reason,
         }),
       );
@@ -369,9 +361,9 @@ export class AttendanceService {
         text = ` 퇴근시간`;
       }
 
-      await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
       await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 🤷‍♂️`);
 
       return { ok: true };
