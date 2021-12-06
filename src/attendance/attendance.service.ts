@@ -107,7 +107,6 @@ export class AttendanceService {
       });
 
       let monthlyTime = 0;
-      let todayWork;
       for (let i = 1; i <= lastDay; i++) {
         let workTime = 0;
 
@@ -127,8 +126,6 @@ export class AttendanceService {
             const t2 = moment(dayData.workStart);
             const diff = moment.duration(t1.diff(t2)).asHours();
             workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
-          } else {
-            todayWork = dayData;
           }
         }
 
@@ -137,6 +134,15 @@ export class AttendanceService {
           monthlyTime += vacationWorkTime;
         }
       }
+
+      const todayWork = await this.ARepo.findOne({
+        where: {
+          userId,
+        },
+        order: {
+          workStart: 'DESC',
+        },
+      });
 
       return { ok: true, vacation: user.vacation, totalVacation: user.totalVacation, weekly, monthlyTime, todayWork };
     } catch (error) {
