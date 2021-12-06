@@ -138,6 +138,7 @@ export class AttendanceService {
       const todayWork = await this.ARepo.findOne({
         where: {
           userId,
+          workEnd: null,
         },
         order: {
           workStart: 'DESC',
