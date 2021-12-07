@@ -244,9 +244,9 @@ export class ReservationService {
     // 월
     const startMonth =
       // 작년일때는 12월, 날짜가 저번달로 넘어갈때는 저번달, 아닐경우는 이번달
-      startYear !== today.getFullYear() ? 12 : today.getDate() - 7 < 0 ? today.getMonth() : today.getMonth() + 1;
+      startYear !== today.getFullYear() ? 12 : today.getDate() - 7 <= 0 ? today.getMonth() : today.getMonth() + 1;
     // 일
-    const startDay = today.getDate() - 7 < 0 ? lastMonthLastDay - -(today.getDate() - 7) : today.getDate() - 7;
+    const startDay = today.getDate() - 7 <= 0 ? lastMonthLastDay - -(today.getDate() - 7) : today.getDate() - 7;
 
     // 이번달 마지막 일
     const thisMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -271,6 +271,7 @@ export class ReservationService {
         },
         relations: ['host'],
       });
+      console.log(`${startYear}-${startMonth}-${startDay} 08:59:59`);
 
       for (const i of reservations) {
         for (const p of i.participantIds) {
@@ -281,7 +282,6 @@ export class ReservationService {
           i.participants.push(parti);
         }
       }
-
       return reservations;
     } catch (err) {
       return;

@@ -494,6 +494,14 @@ export class AttendanceService {
       if (!vacation) {
         return { ok: false, error: 'There is no vacation info' };
       }
+      let num = 0.5;
+      if (vacation.type === VacationEnum.DayOff) {
+        num = 1;
+      }
+
+      await this.URepo.update(vacation.userId, {
+        vacation: () => `vacation - ${num}`,
+      });
 
       await this.VRepo.delete(id);
       return { ok: true };
