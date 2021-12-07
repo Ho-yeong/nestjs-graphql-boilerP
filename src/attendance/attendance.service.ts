@@ -24,6 +24,7 @@ import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 import { Cron } from '@nestjs/schedule';
+import { DailyAverageProp, GetDailyAverageInput, GetDailyAverageOutput } from './dtos/getDailyAverage.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -75,10 +76,7 @@ export class AttendanceService {
         let workTime = 0;
 
         if (i.workEnd) {
-          const t1 = moment(i.workEnd);
-          const t2 = moment(i.workStart);
-          const diff = moment.duration(t1.diff(t2)).asHours();
-          workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
+          workTime = this.calcWorkTime(i.workStart, i.workEnd);
         }
         weekly += workTime;
       }
@@ -122,10 +120,7 @@ export class AttendanceService {
         const dayData = data.find((v) => v.workStart.getDate() === i);
         if (dayData) {
           if (dayData.workEnd) {
-            const t1 = moment(dayData.workEnd);
-            const t2 = moment(dayData.workStart);
-            const diff = moment.duration(t1.diff(t2)).asHours();
-            workTime = Math.ceil(diff - 2) < 0 ? 0 : Math.ceil(diff - 2);
+            workTime = this.calcWorkTime(dayData.workStart, dayData.workEnd);
           }
         }
 
@@ -194,26 +189,7 @@ export class AttendanceService {
 
         if (dayData) {
           if (dayData.workEnd) {
-            let mealTime = 2;
-            // 점심시간
-            if (
-              dayData.workStart >
-              moment(
-                new Date(
-                  `${dayData.workStart.getFullYear()}-${
-                    dayData.workStart.getMonth() + 1
-                  }-${dayData.workStart.getDate()} 14:00:00`,
-                ),
-              ).toDate()
-            ) {
-              mealTime = 1;
-            }
-
-            const t1 = moment(dayData.workEnd);
-            const t2 = moment(dayData.workStart);
-            const diff = moment.duration(t1.diff(t2)).asHours();
-            const result = Math.ceil(diff - mealTime);
-            tmp.workTime = result < 0 ? 0 : result;
+            tmp.workTime = this.calcWorkTime(dayData.workStart, dayData.workEnd);
           }
         }
         monthly.push(tmp);
@@ -224,6 +200,35 @@ export class AttendanceService {
       console.log(error);
       return { ok: false, error: 'Get user information failed' };
     }
+  }
+
+  calcWorkTime(workStart: Date, workEnd: Date): number {
+    // 점심 + 저녁 시간
+    let mealTime = 2;
+    // 오전 반차인 경우 -1
+    if (
+      workStart >
+      moment(
+        new Date(`${workStart.getFullYear()}-${workStart.getMonth() + 1}-${workStart.getDate()} 13:00:00`),
+      ).toDate()
+    ) {
+      mealTime -= 1;
+    }
+    // 20시 이전 퇴근 인 경우 -1
+    if (
+      workEnd <
+      moment(
+        new Date(`${workStart.getFullYear()}-${workStart.getMonth() + 1}-${workStart.getDate()} 20:00:00`),
+      ).toDate()
+    ) {
+      mealTime -= 1;
+    }
+
+    const t1 = moment(workEnd);
+    const t2 = moment(workStart);
+    const diff = moment.duration(t1.diff(t2)).asHours();
+    const result = Math.ceil(diff - mealTime);
+    return result < 0 ? 0 : result;
   }
 
   // 출근, 퇴근 하기
@@ -239,6 +244,7 @@ export class AttendanceService {
         await this.ARepo.insert(
           this.ARepo.create({
             userId,
+            user,
             workStart: new Date(),
           }),
         );
@@ -548,6 +554,48 @@ export class AttendanceService {
       }
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  async getDailyAverage({ year, month, day }: GetDailyAverageInput): Promise<GetDailyAverageOutput> {
+    try {
+      const targetDay = `${year}-${month}-${day} 00:00:00`;
+      const targetDayLast = `${year}-${month}-${day} 23:59:59`;
+
+      const allUsers = await this.URepo.find();
+
+      const attendances = await this.ARepo.find({
+        where: {
+          workStart: Between(targetDay, targetDayLast),
+        },
+      });
+
+      const users: DailyAverageProp[] = [];
+      let entireWorkTime = 0;
+
+      for (const i of allUsers) {
+        let workTime = 0;
+        const tmp: DailyAverageProp = {
+          id: i.id,
+          name: i.name,
+          team: i.team,
+        };
+        const userAData = attendances.find((v) => v.userId === i.id);
+        if (userAData) {
+          if (userAData.workEnd) {
+            workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd);
+            entireWorkTime += workTime;
+          }
+          tmp.workStart = userAData.workStart;
+          tmp.workEnd = userAData.workEnd ? userAData.workEnd : null;
+          tmp.duration = userAData.workEnd ? workTime : null;
+        }
+        users.push(tmp);
+      }
+
+      return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
+    } catch (err) {
+      return { ok: false, error: 'Get user daily average failed' };
     }
   }
 }

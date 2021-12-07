@@ -13,6 +13,7 @@ import { CurrentIP } from '../auth/currentIP.decorator';
 import { COMPANY_IPS } from './ip.constant';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
+import { GetDailyAverageInput, GetDailyAverageOutput } from './dtos/getDailyAverage.dto';
 
 @Resolver()
 export class AttendanceResolver {
@@ -72,5 +73,10 @@ export class AttendanceResolver {
   @Mutation((returns) => DeleteVacationOutput)
   async deleteVacation(@Args('input') deleteVacationInput: DeleteVacationInput): Promise<DeleteVacationOutput> {
     return this.aService.deleteVacation(deleteVacationInput);
+  }
+
+  @Query((returns) => GetDailyAverageOutput)
+  async getDailyAverage(@Args('input') getDailyAverage: GetDailyAverageInput): Promise<GetDailyAverageOutput> {
+    return this.aService.getDailyAverage(getDailyAverage);
   }
 }

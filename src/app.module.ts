@@ -71,7 +71,6 @@ import { AppController } from './app.controller';
     CommonModule,
     ReservationModule,
     ScheduleModule.forRoot(),
-    SocketModule,
     AttendanceModule,
     BotModule.forRoot({
       AppKey: process.env.BOTKEY,

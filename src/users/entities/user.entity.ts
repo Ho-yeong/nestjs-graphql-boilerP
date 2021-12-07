@@ -7,6 +7,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { UserRole, UserTeam } from './users.constants';
 import { Reservation } from '../../reservation/entities/reservation.entity';
 import { Request } from '../../attendance/entities/request.entity';
+import { Attendance } from '../../attendance/entities/attendance.entity';
 
 registerEnumType(UserRole, { name: 'UserRole' });
 registerEnumType(UserTeam, { name: 'UserTeam' });
@@ -57,6 +58,10 @@ export class User extends CoreEntity {
   @Field((type) => [Request], { nullable: true })
   @OneToMany((type) => Request, (request) => request.user, { nullable: true })
   requests?: Request[];
+
+  @Field((type) => [Attendance], { nullable: true })
+  @OneToMany((type) => Attendance, (attendance) => attendance.user, { nullable: true })
+  attendances?: Attendance[];
 
   @BeforeInsert()
   @BeforeUpdate()

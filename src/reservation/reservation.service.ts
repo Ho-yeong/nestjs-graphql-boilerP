@@ -271,7 +271,6 @@ export class ReservationService {
         },
         relations: ['host'],
       });
-      console.log(`${startYear}-${startMonth}-${startDay} 08:59:59`);
 
       for (const i of reservations) {
         for (const p of i.participantIds) {

@@ -111,10 +111,37 @@ export class UsersService {
           const dayData = data.find((v) => v.workStart.getDate() === i);
           if (dayData) {
             if (dayData.workEnd) {
+              let mealTime = 2;
+              if (
+                dayData.workStart >
+                moment(
+                  new Date(
+                    `${dayData.workStart.getFullYear()}-${
+                      dayData.workStart.getMonth() + 1
+                    }-${dayData.workStart.getDate()} 13:00:00`,
+                  ),
+                ).toDate()
+              ) {
+                mealTime -= 1;
+              }
+              if (
+                dayData.workEnd <
+                moment(
+                  new Date(
+                    `${dayData.workStart.getFullYear()}-${
+                      dayData.workStart.getMonth() + 1
+                    }-${dayData.workStart.getDate()} 20:00:00`,
+                  ),
+                ).toDate()
+              ) {
+                mealTime -= 1;
+              }
+
               const t1 = moment(dayData.workEnd);
               const t2 = moment(dayData.workStart);
               const diff = moment.duration(t1.diff(t2)).asHours();
-              workTime = Math.ceil(diff - 2);
+              const result = Math.ceil(diff - mealTime);
+              workTime = result < 0 ? 0 : result;
             }
           }
           monthlyTime += workTime;
