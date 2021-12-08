@@ -14,6 +14,8 @@ import { COMPANY_IPS } from './ip.constant';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 import { GetDailyAverageInput, GetDailyAverageOutput } from './dtos/getDailyAverage.dto';
+import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAttendance.dto';
+import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
 
 @Resolver()
 export class AttendanceResolver {
@@ -78,5 +80,15 @@ export class AttendanceResolver {
   @Query((returns) => GetDailyAverageOutput)
   async getDailyAverage(@Args('input') getDailyAverage: GetDailyAverageInput): Promise<GetDailyAverageOutput> {
     return this.aService.getDailyAverage(getDailyAverage);
+  }
+
+  @Mutation((returns) => ModifyAttendanceOutput)
+  async modifyAttendance(@Args('input') modifyAttendanceInput: ModifyAttendanceInput): Promise<ModifyAttendanceOutput> {
+    return this.aService.modifyAttendance(modifyAttendanceInput);
+  }
+
+  @Mutation((returns) => DeleteAttendanceOutput)
+  async deleteAttendance(@Args('input') deleteAttendanceInput: DeleteAttendanceInput): Promise<DeleteAttendanceOutput> {
+    return this.aService.deleteAttendance(deleteAttendanceInput);
   }
 }

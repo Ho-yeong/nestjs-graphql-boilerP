@@ -10,10 +10,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { IsBoolean, IsDate, IsEnum, IsNumber, IsString } from 'class-validator';
-import { WorkType } from './request.constant';
+import { RequestType, WorkType } from './request.constant';
 import { User } from '../../users/entities/user.entity';
 
 registerEnumType(WorkType, { name: 'WorkTypeEnum' });
+registerEnumType(RequestType, { name: 'RequestTypeEnum' });
 
 @InputType('RequestInputType', { isAbstract: true })
 @ObjectType()
@@ -43,10 +44,10 @@ export class Request {
   @ManyToOne((type) => User, (user) => user.requests, { onDelete: 'CASCADE', nullable: false })
   user: User;
 
-  @Column()
-  @Field((type) => Number)
+  @Column({ nullable: true })
+  @Field((type) => Number, { nullable: true })
   @IsNumber()
-  attendanceId: number;
+  attendanceId?: number;
 
   @Column({ type: 'enum', enum: WorkType })
   @Field((type) => WorkType)
@@ -68,10 +69,10 @@ export class Request {
   @IsString()
   reason: string;
 
-  @Column({ default: false })
-  @Field((type) => Boolean)
-  @IsBoolean()
-  check: boolean;
+  @Column({ enum: RequestType, type: 'enum' })
+  @Field((type) => RequestType)
+  @IsEnum(RequestType)
+  check: RequestType;
 
   @BeforeInsert()
   @BeforeUpdate()

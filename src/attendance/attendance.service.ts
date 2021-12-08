@@ -8,7 +8,7 @@ import { RequestInput, RequestOutput } from './dtos/request.dto';
 import { ModifyVacationInput, ModifyVacationOutput } from './dtos/modifyVacation.dto';
 import { GetUserWorkTimeInput, GetUserWorkTimeOutput } from './dtos/getUserWorkTime.dto';
 import { User } from '../users/entities/user.entity';
-import { VacationEnum, WorkType } from './entities/request.constant';
+import { RequestType, VacationEnum, WorkType } from './entities/request.constant';
 import { GetRequestListOutput } from '../common/dtos/getRequestList.dto';
 import { RequestCheckInput, RequestCheckOutput } from './dtos/requestCheck.dto';
 import { BotService } from '../bot/bot.service';
@@ -25,6 +25,8 @@ import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 import { Cron } from '@nestjs/schedule';
 import { DailyAverageProp, GetDailyAverageInput, GetDailyAverageOutput } from './dtos/getDailyAverage.dto';
+import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAttendance.dto';
+import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -207,7 +209,7 @@ export class AttendanceService {
     let mealTime = 2;
     // 오전 반차인 경우 -1
     if (
-      workStart >
+      moment(workStart).toDate() >
       moment(
         new Date(`${workStart.getFullYear()}-${workStart.getMonth() + 1}-${workStart.getDate()} 13:00:00`),
       ).toDate()
@@ -216,14 +218,13 @@ export class AttendanceService {
     }
     // 20시 이전 퇴근 인 경우 -1
     if (
-      workEnd <
+      moment(workEnd).toDate() <
       moment(
         new Date(`${workStart.getFullYear()}-${workStart.getMonth() + 1}-${workStart.getDate()} 20:00:00`),
       ).toDate()
     ) {
       mealTime -= 1;
     }
-
     const t1 = moment(workEnd);
     const t2 = moment(workStart);
     const diff = moment.duration(t1.diff(t2)).asHours();
@@ -294,30 +295,48 @@ export class AttendanceService {
       let textBlock = '출근시간';
 
       if (!confirm) {
-        await this.RRepo.delete(id);
         await this.botService.sendMessageByEmail(
           targetUser.email,
           `${targetUser.name}님의 ${textBlock} 수정 요청이 ${user.name}님에 의해 거절되었습니다. 🤔`,
         );
         await this.RRepo.update(id, {
-          check: true,
+          check: RequestType.REJECTED,
         });
         return { ok: true };
       }
 
-      if (request.workType === WorkType.START) {
-        await this.ARepo.update(request.attendanceId, {
-          workStart: request.WillFixTime,
-        });
+      if (request.attendanceId) {
+        if (request.workType === WorkType.START) {
+          await this.ARepo.update(request.attendanceId, {
+            workStart: request.WillFixTime,
+          });
+        } else {
+          await this.ARepo.update(request.attendanceId, {
+            workEnd: request.WillFixTime,
+          });
+          textBlock = '퇴근시간';
+        }
       } else {
-        await this.ARepo.update(request.attendanceId, {
-          workEnd: request.WillFixTime,
-        });
-        textBlock = '퇴근시간';
+        if (request.workType === WorkType.START) {
+          await this.ARepo.insert(
+            this.ARepo.create({
+              userId: request.userId,
+              workStart: request.WillFixTime,
+            }),
+          );
+        } else {
+          await this.ARepo.insert(
+            this.ARepo.create({
+              userId: request.userId,
+              workEnd: request.WillFixTime,
+            }),
+          );
+          textBlock = '퇴근시간';
+        }
       }
 
       await this.RRepo.update(id, {
-        check: true,
+        check: RequestType.CONFIRMED,
       });
 
       await this.botService.sendMessageByEmail(
@@ -352,15 +371,12 @@ export class AttendanceService {
           userId,
         },
       });
-      if (!attendance) {
-        return { ok: false, error: 'Wrong Access! 관리자에게 문의하세요' };
-      }
 
       await this.RRepo.insert(
         this.RRepo.create({
           userId,
           user,
-          attendanceId: attendance.id,
+          ...(attendance && { attendanceId: attendance.id }),
           workType,
           workDate,
           WillFixTime,
@@ -589,6 +605,7 @@ export class AttendanceService {
           tmp.workStart = userAData.workStart;
           tmp.workEnd = userAData.workEnd ? userAData.workEnd : null;
           tmp.duration = userAData.workEnd ? workTime : null;
+          tmp.attendanceId = userAData.id;
         }
         users.push(tmp);
       }
@@ -596,6 +613,44 @@ export class AttendanceService {
       return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
     } catch (err) {
       return { ok: false, error: 'Get user daily average failed' };
+    }
+  }
+
+  async modifyAttendance({
+    attendanceId,
+    workStart,
+    workEnd,
+    userId,
+  }: ModifyAttendanceInput): Promise<ModifyAttendanceOutput> {
+    try {
+      if (attendanceId) {
+        await this.ARepo.update(attendanceId, {
+          ...(workStart && { workStart }),
+          ...(workEnd && { workEnd }),
+        });
+
+        return { ok: true };
+      }
+
+      await this.ARepo.insert(
+        this.ARepo.create({
+          userId,
+          ...(workStart && { workStart }),
+          ...(workEnd && { workEnd }),
+        }),
+      );
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: '근무 정보 수정에 실패하였습니다.' };
+    }
+  }
+
+  async deleteAttendance({ attendanceId }: DeleteAttendanceInput): Promise<DeleteAttendanceOutput> {
+    try {
+      await this.ARepo.delete(attendanceId);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: '근무 정보 삭제에 실패하였습니다.' };
     }
   }
 }

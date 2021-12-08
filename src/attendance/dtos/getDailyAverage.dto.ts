@@ -19,6 +19,9 @@ export class DailyAverageProp {
   @Field((type) => Number)
   id: number;
 
+  @Field((type) => Number, { nullable: true })
+  attendanceId?: number;
+
   @Field((type) => String)
   name: string;
 
