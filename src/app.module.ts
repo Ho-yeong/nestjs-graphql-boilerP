@@ -50,7 +50,7 @@ import { AppController } from './app.controller';
             charset: 'utf8',
           }),
       synchronize: true,
-      logging: process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
+      // logging: process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'test',
       entities: [User, Reservation, Attendance, Request, Vacation],
       charset: 'utf8',
     }),

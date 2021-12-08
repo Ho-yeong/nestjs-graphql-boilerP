@@ -14,11 +14,7 @@ import { RequestCheckInput, RequestCheckOutput } from './dtos/requestCheck.dto';
 import { BotService } from '../bot/bot.service';
 import * as moment from 'moment-timezone';
 import { Vacation } from './entities/vacation.entity';
-import {
-  AttendanceMonthlyData,
-  GetUserMonthlyWorkInput,
-  GetUserMonthlyWorkOutput,
-} from './dtos/getUserMonthlyWork.dto';
+import { AttendanceMonthlyData, GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getMonthlyWork.dto';
 import { UserRole } from '../users/entities/users.constants';
 import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
@@ -27,6 +23,8 @@ import { Cron } from '@nestjs/schedule';
 import { DailyAverageProp, GetDailyAverageInput, GetDailyAverageOutput } from './dtos/getDailyAverage.dto';
 import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAttendance.dto';
 import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
+import { GetMonthlyAverageInput, GetMonthlyAverageOutput, MonthlyAverageProp } from './dtos/getMonthlyAverage.dto';
+import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -586,6 +584,12 @@ export class AttendanceService {
         },
       });
 
+      const vacations = await this.VRepo.find({
+        where: {
+          date: Between(targetDay, targetDayLast),
+        },
+      });
+
       const users: DailyAverageProp[] = [];
       let entireWorkTime = 0;
 
@@ -607,11 +611,29 @@ export class AttendanceService {
           tmp.duration = userAData.workEnd ? workTime : null;
           tmp.attendanceId = userAData.id;
         }
+        const userVData = vacations.find((v) => v.userId === i.id);
+        if (userVData) {
+          tmp.vacation = userVData.type;
+          if (userVData.type === VacationEnum.DayOff) {
+            if (tmp.duration) {
+              tmp.duration += 8;
+            } else {
+              tmp.duration = 8;
+            }
+          } else {
+            if (tmp.duration) {
+              tmp.duration += 4;
+            } else {
+              tmp.duration = 4;
+            }
+          }
+        }
         users.push(tmp);
       }
 
       return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
     } catch (err) {
+      console.log(err);
       return { ok: false, error: 'Get user daily average failed' };
     }
   }
@@ -652,6 +674,120 @@ export class AttendanceService {
       return { ok: true };
     } catch (error) {
       return { ok: false, error: '근무 정보 삭제에 실패하였습니다.' };
+    }
+  }
+
+  async getMonthlyAverage({ year, month }: GetMonthlyAverageInput): Promise<GetMonthlyAverageOutput> {
+    try {
+      const targetMonth = new Date(`${year}-${month}`);
+      const lastDay = new Date(year, month, 0).getDate();
+      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay} 23:59:59`);
+
+      const allUsers = await this.URepo.find();
+
+      const users: MonthlyAverageProp[] = [];
+      let entireWorkTime = 0;
+
+      for (const user of allUsers) {
+        const aData = await this.ARepo.find({
+          where: {
+            workStart: Between(targetMonth, targetMonthLastDay),
+            userId: user.id,
+          },
+        });
+
+        const vData = await this.VRepo.find({
+          where: {
+            date: Between(targetMonth, targetMonthLastDay),
+            userId: user.id,
+          },
+        });
+
+        const tmp: MonthlyAverageProp = {
+          id: user.id,
+          name: user.name,
+          team: user.team,
+        };
+        let monthWorkTime = 0;
+        let MonthVacationTime = 0;
+        for (let i = 1; i <= lastDay; i++) {
+          const userAData = aData.find((v) => v.workStart.getDate() === i);
+          if (userAData) {
+            if (userAData.workEnd) {
+              monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd);
+            }
+          }
+          const userVData = vData.find((v) => v.date.getDate() === i);
+          if (userVData) {
+            if (userVData.type === VacationEnum.DayOff) {
+              MonthVacationTime += 8;
+            } else {
+              MonthVacationTime += 4;
+            }
+          }
+        }
+        tmp.duration = monthWorkTime + MonthVacationTime;
+        entireWorkTime += tmp.duration;
+        users.push(tmp);
+      }
+
+      return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
+    } catch (err) {
+      return { ok: false, error: 'Get user monthly average failed' };
+    }
+  }
+
+  async getWeeklyAverage({ startDate, endDate }: GetWeeklyAverageInput): Promise<GetWeeklyAverageOutput> {
+    try {
+      const allUsers = await this.URepo.find();
+
+      const users: MonthlyAverageProp[] = [];
+      let entireWorkTime = 0;
+
+      for (const user of allUsers) {
+        const aData = await this.ARepo.find({
+          where: {
+            workStart: Between(startDate, endDate),
+            userId: user.id,
+          },
+        });
+
+        const vData = await this.VRepo.find({
+          where: {
+            date: Between(startDate, endDate),
+            userId: user.id,
+          },
+        });
+
+        const tmp: MonthlyAverageProp = {
+          id: user.id,
+          name: user.name,
+          team: user.team,
+        };
+        let WorkTime = 0;
+        let VacationTime = 0;
+
+        for (let i = 0; i < aData.length; i++) {
+          if (aData[i].workEnd) {
+            WorkTime += this.calcWorkTime(aData[i].workStart, aData[i].workEnd);
+          }
+        }
+        for (let i = 0; i < vData.length; i++) {
+          if (vData[i].type === VacationEnum.DayOff) {
+            VacationTime += 8;
+          } else {
+            VacationTime += 4;
+          }
+        }
+
+        tmp.duration = WorkTime + VacationTime;
+        entireWorkTime += tmp.duration;
+        users.push(tmp);
+      }
+
+      return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
+    } catch (err) {
+      return { ok: false, error: 'Get user average failed' };
     }
   }
 }

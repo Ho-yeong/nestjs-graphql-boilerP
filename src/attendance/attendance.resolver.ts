@@ -6,7 +6,7 @@ import { GetRequestListOutput } from '../common/dtos/getRequestList.dto';
 import { RequestCheckInput, RequestCheckOutput } from './dtos/requestCheck.dto';
 import { RequestInput, RequestOutput } from './dtos/request.dto';
 import { ModifyVacationInput, ModifyVacationOutput } from './dtos/modifyVacation.dto';
-import { GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getUserMonthlyWork.dto';
+import { GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getMonthlyWork.dto';
 import { AuthUser } from '../auth/authUser.decorator';
 import { User } from '../users/entities/user.entity';
 import { CurrentIP } from '../auth/currentIP.decorator';
@@ -16,6 +16,8 @@ import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation
 import { GetDailyAverageInput, GetDailyAverageOutput } from './dtos/getDailyAverage.dto';
 import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAttendance.dto';
 import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
+import { GetMonthlyAverageInput, GetMonthlyAverageOutput } from './dtos/getMonthlyAverage.dto';
+import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
 
 @Resolver()
 export class AttendanceResolver {
@@ -90,5 +92,19 @@ export class AttendanceResolver {
   @Mutation((returns) => DeleteAttendanceOutput)
   async deleteAttendance(@Args('input') deleteAttendanceInput: DeleteAttendanceInput): Promise<DeleteAttendanceOutput> {
     return this.aService.deleteAttendance(deleteAttendanceInput);
+  }
+
+  @Query((returns) => GetMonthlyAverageOutput)
+  async getMonthlyAverage(
+    @Args('input') getMonthlyAverageOutput: GetMonthlyAverageInput,
+  ): Promise<GetMonthlyAverageOutput> {
+    return this.aService.getMonthlyAverage(getMonthlyAverageOutput);
+  }
+
+  @Query((returns) => GetWeeklyAverageOutput)
+  async getWeeklyAverage(
+    @Args('input') getWeeklyAverageOutput: GetWeeklyAverageInput,
+  ): Promise<GetWeeklyAverageOutput> {
+    return this.aService.getWeeklyAverage(getWeeklyAverageOutput);
   }
 }

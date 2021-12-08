@@ -1,6 +1,6 @@
-import { Field, InputType, ObjectType, PickType } from '@nestjs/graphql';
+import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { CoreOutput } from '../../common/dtos/output.dto';
-import { User } from '../../users/entities/user.entity';
+import { VacationEnum } from '../entities/request.constant';
 
 @InputType()
 export class GetDailyAverageInput {
@@ -36,6 +36,9 @@ export class DailyAverageProp {
 
   @Field((type) => Number, { nullable: true })
   duration?: number;
+
+  @Field((type) => VacationEnum, { nullable: true })
+  vacation?: VacationEnum;
 }
 
 @ObjectType()
