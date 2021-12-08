@@ -629,17 +629,18 @@ export class AttendanceService {
           ...(workEnd && { workEnd }),
         });
 
-        return { ok: true };
+        return { ok: true, attendanceId };
       }
 
-      await this.ARepo.insert(
+      const result = await this.ARepo.insert(
         this.ARepo.create({
           userId,
           ...(workStart && { workStart }),
           ...(workEnd && { workEnd }),
         }),
       );
-      return { ok: true };
+
+      return { ok: true, attendanceId: result.raw.insertId };
     } catch (error) {
       return { ok: false, error: '근무 정보 수정에 실패하였습니다.' };
     }

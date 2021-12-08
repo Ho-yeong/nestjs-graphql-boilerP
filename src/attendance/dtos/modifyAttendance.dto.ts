@@ -17,4 +17,7 @@ export class ModifyAttendanceInput {
 }
 
 @ObjectType()
-export class ModifyAttendanceOutput extends CoreOutput {}
+export class ModifyAttendanceOutput extends CoreOutput {
+  @Field((type) => Number, { nullable: true })
+  attendanceId?: number;
+}
