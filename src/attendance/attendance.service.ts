@@ -52,10 +52,8 @@ export class AttendanceService {
       // 이번주 일요일
       const sun = moment(today).startOf('isoWeek').add(6, 'days');
 
-      const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-
-      const m = moment(new Date(mon.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
-      const s = moment(new Date(sun.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
+      const m = moment(new Date(mon.toDate())).format('YYYY-MM-DD HH:mm:ss');
+      const s = moment(new Date(sun.toDate())).format('YYYY-MM-DD HH:mm:ss');
 
       const WeekAttendanceData = await this.ARepo.find({
         where: {
@@ -88,6 +86,7 @@ export class AttendanceService {
         }
         weekly += vacationTime;
       }
+      console.log(WeekVacationData);
 
       // 한달
       const data = await this.ARepo.find({
