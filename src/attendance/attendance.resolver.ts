@@ -18,6 +18,7 @@ import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAtte
 import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
 import { GetMonthlyAverageInput, GetMonthlyAverageOutput } from './dtos/getMonthlyAverage.dto';
 import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
+import { GetAllRequestsInput, GetAllRequestsOutput } from './dtos/getAllRequests.dto';
 
 @Resolver()
 export class AttendanceResolver {
@@ -106,5 +107,10 @@ export class AttendanceResolver {
     @Args('input') getWeeklyAverageOutput: GetWeeklyAverageInput,
   ): Promise<GetWeeklyAverageOutput> {
     return this.aService.getWeeklyAverage(getWeeklyAverageOutput);
+  }
+
+  @Query((returns) => GetAllRequestsOutput)
+  async getAllRequests(@Args('input') getAllRequestsInput: GetAllRequestsInput): Promise<GetAllRequestsOutput> {
+    return this.aService.getAllRequests(getAllRequestsInput);
   }
 }

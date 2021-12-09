@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attendance } from './entities/attendance.entity';
-import { Between, LessThan, MoreThan, Raw, Repository } from 'typeorm';
+import { Between, LessThan, MoreThan, Not, Raw, Repository } from 'typeorm';
 import { Request } from './entities/request.entity';
 import { DoWorkInput, DoWorkOutput } from './dtos/doWork.dto';
 import { RequestInput, RequestOutput } from './dtos/request.dto';
@@ -25,6 +25,7 @@ import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAtte
 import { GetMonthlyAverageInput, GetMonthlyAverageOutput, MonthlyAverageProp } from './dtos/getMonthlyAverage.dto';
 import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
 import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
+import { GetAllRequestsInput, GetAllRequestsOutput } from './dtos/getAllRequests.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -380,7 +381,6 @@ export class AttendanceService {
           check: RequestType.WAITING,
         }),
       );
-      console.log(result);
 
       let text = '출근시간';
       if (workType === WorkType.END) {
@@ -390,10 +390,7 @@ export class AttendanceService {
       await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
       await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
       await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      // await this.botService.sendMessageByEmail(
-      //   'simon@vicgamestudios.com',
-      //   `${user.name}님에게서 ${text} 수정요청이 왔습니다.`,
-      // );
+
       await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 🤷‍♂️`);
 
       return { ok: true };
@@ -792,6 +789,26 @@ export class AttendanceService {
       return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
     } catch (err) {
       return { ok: false, error: 'Get user average failed' };
+    }
+  }
+
+  async getAllRequests({ year, month }: GetAllRequestsInput): Promise<GetAllRequestsOutput> {
+    try {
+      const targetMonth = new Date(`${year}-${month}`);
+      const lastDay = new Date(year, month, 0).getDate();
+      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay} 23:59:59`);
+
+      const requests = await this.RRepo.find({
+        relations: ['user'],
+        where: {
+          createdAt: Between(targetMonth, targetMonthLastDay),
+          check: Not(RequestType.WAITING),
+        },
+      });
+
+      return { ok: true, requests };
+    } catch (error) {
+      return { ok: false, error: 'Get all requests failed' };
     }
   }
 }
