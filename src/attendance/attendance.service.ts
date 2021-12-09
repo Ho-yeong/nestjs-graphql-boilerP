@@ -24,6 +24,7 @@ import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAtte
 import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
 import { GetMonthlyAverageInput, GetMonthlyAverageOutput, MonthlyAverageProp } from './dtos/getMonthlyAverage.dto';
 import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
+import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 
 @Injectable()
 export class AttendanceService {
@@ -386,13 +387,13 @@ export class AttendanceService {
         text = ` 퇴근시간`;
       }
 
-      // await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      // await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      // await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(
-        'simon@vicgamestudios.com',
-        `${user.name}님에게서 ${text} 수정요청이 왔습니다.`,
-      );
+      await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(
+      //   'simon@vicgamestudios.com',
+      //   `${user.name}님에게서 ${text} 수정요청이 왔습니다.`,
+      // );
       await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 🤷‍♂️`);
 
       return { ok: true };
