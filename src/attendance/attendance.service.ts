@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attendance } from './entities/attendance.entity';
-import { Between, LessThan, MoreThan, Repository } from 'typeorm';
+import { Between, LessThan, MoreThan, Raw, Repository } from 'typeorm';
 import { Request } from './entities/request.entity';
 import { DoWorkInput, DoWorkOutput } from './dtos/doWork.dto';
 import { RequestInput, RequestOutput } from './dtos/request.dto';
@@ -16,7 +16,6 @@ import * as moment from 'moment-timezone';
 import { Vacation } from './entities/vacation.entity';
 import { AttendanceMonthlyData, GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getMonthlyWork.dto';
 import { UserRole } from '../users/entities/users.constants';
-import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 import { Cron } from '@nestjs/schedule';
@@ -86,7 +85,6 @@ export class AttendanceService {
         }
         weekly += vacationTime;
       }
-      console.log(WeekVacationData);
 
       // 한달
       const data = await this.ARepo.find({
@@ -266,7 +264,7 @@ export class AttendanceService {
     try {
       const requests = await this.RRepo.find({
         where: {
-          check: false,
+          check: Raw((check) => `${check} = '0'`),
         },
         relations: ['user'],
       });
@@ -355,21 +353,21 @@ export class AttendanceService {
         return { ok: false, error: 'There is no user information' };
       }
 
-      const targetDayStart = moment(
+      const targetDayStart = new Date(
         `${workDate.getFullYear()}-${workDate.getMonth() + 1}-${workDate.getDate()} 00:00:00`,
       );
-      const targetDayEnd = moment(
+      const targetDayEnd = new Date(
         `${workDate.getFullYear()}-${workDate.getMonth() + 1}-${workDate.getDate()} 23:59:59`,
       );
 
       const attendance = await this.ARepo.findOne({
         where: {
-          workStart: Between(targetDayStart.toDate(), targetDayEnd.toDate()),
+          workStart: Between(targetDayStart, targetDayEnd),
           userId,
         },
       });
 
-      await this.RRepo.insert(
+      const result = await this.RRepo.insert(
         this.RRepo.create({
           userId,
           user,
@@ -378,17 +376,23 @@ export class AttendanceService {
           workDate,
           WillFixTime,
           reason,
+          check: RequestType.WAITING,
         }),
       );
+      console.log(result);
 
       let text = '출근시간';
       if (workType === WorkType.END) {
         text = ` 퇴근시간`;
       }
 
-      await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      await this.botService.sendMessageByEmail(
+        'simon@vicgamestudios.com',
+        `${user.name}님에게서 ${text} 수정요청이 왔습니다.`,
+      );
       await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 🤷‍♂️`);
 
       return { ok: true };
