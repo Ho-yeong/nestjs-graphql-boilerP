@@ -2,6 +2,7 @@ export enum VacationEnum {
   DayOff,
   AMOff,
   PMOff,
+  official,
 }
 
 export enum WorkType {

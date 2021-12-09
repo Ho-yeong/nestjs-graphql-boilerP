@@ -9,6 +9,9 @@ export class GetAllRequestsInput {
 
   @Field((type) => Number)
   month: number;
+
+  @Field((type) => Number, { nullable: true })
+  userId?: number;
 }
 
 @ObjectType()

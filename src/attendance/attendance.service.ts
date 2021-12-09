@@ -113,6 +113,8 @@ export class AttendanceService {
         if (vData) {
           if (vData.type === VacationEnum.DayOff) {
             vacationWorkTime = 8;
+          } else if (vData.type === VacationEnum.official) {
+            vacationWorkTime = 0;
           }
         }
 
@@ -182,6 +184,8 @@ export class AttendanceService {
           let vacationWorkTime = 4;
           if (vData.type === VacationEnum.DayOff) {
             vacationWorkTime = 8;
+          } else if (vData.type === VacationEnum.official) {
+            vacationWorkTime = 0;
           }
           tmp.vacation = vacationWorkTime;
         }
@@ -425,6 +429,10 @@ export class AttendanceService {
         case VacationEnum.PMOff:
           typeText = '오후 반차';
           break;
+        case VacationEnum.official:
+          typeText = '공가';
+          num = 0;
+          break;
       }
       const data = await this.VRepo.findOne({
         where: {
@@ -433,7 +441,9 @@ export class AttendanceService {
         },
       });
 
+      // 같은 날짜에 저장된 휴가가 있을때
       if (data) {
+        // 저장되어 있던 휴가가 반차 이고 새로 받는 휴가가 연차일때 +0.5
         if (
           (data.type === VacationEnum.AMOff && type === VacationEnum.DayOff) ||
           (data.type === VacationEnum.PMOff && type === VacationEnum.DayOff)
@@ -441,12 +451,26 @@ export class AttendanceService {
           await this.URepo.update(userId, {
             vacation: () => `vacation + 0.5`,
           });
+          // 저장되어 있던게 연차이고 새로 받는 휴가가 반차일때 -0.5
         } else if (
           (data.type === VacationEnum.DayOff && type === VacationEnum.AMOff) ||
           (data.type === VacationEnum.DayOff && type === VacationEnum.PMOff)
         ) {
           await this.URepo.update(userId, {
             vacation: () => `vacation - 0.5`,
+          });
+          // 저장되어 있던게 연차이고 새로 받는 휴가가 공가일때 -1
+        } else if (data.type === VacationEnum.DayOff && type === VacationEnum.official) {
+          await this.URepo.update(userId, {
+            vacation: () => `vacation - ${num}`,
+          });
+          // 저장되어 있던게 반차이고 새로 받는 휴가가 공가일때 -0.5
+        } else if (
+          (data.type === VacationEnum.AMOff && type === VacationEnum.official) ||
+          (data.type === VacationEnum.PMOff && type === VacationEnum.official)
+        ) {
+          await this.URepo.update(userId, {
+            vacation: () => `vacation - ${num}`,
           });
         }
 
@@ -463,6 +487,7 @@ export class AttendanceService {
         );
 
         return { ok: true, error: String(data.type), id: data.id };
+        // 기존 날짜에 저장된 휴가가 없을 때
       } else {
         await this.URepo.update(userId, {
           vacation: () => `vacation + ${num}`,
@@ -518,6 +543,8 @@ export class AttendanceService {
       let num = 0.5;
       if (vacation.type === VacationEnum.DayOff) {
         num = 1;
+      } else if (vacation.type === VacationEnum.official) {
+        num = 0;
       }
 
       await this.URepo.update(vacation.userId, {
@@ -621,6 +648,7 @@ export class AttendanceService {
             } else {
               tmp.duration = 8;
             }
+          } else if (userVData.type === VacationEnum.official) {
           } else {
             if (tmp.duration) {
               tmp.duration += 4;
@@ -792,7 +820,7 @@ export class AttendanceService {
     }
   }
 
-  async getAllRequests({ year, month }: GetAllRequestsInput): Promise<GetAllRequestsOutput> {
+  async getAllRequests({ year, month, userId }: GetAllRequestsInput): Promise<GetAllRequestsOutput> {
     try {
       const targetMonth = new Date(`${year}-${month}`);
       const lastDay = new Date(year, month, 0).getDate();
@@ -803,6 +831,7 @@ export class AttendanceService {
         where: {
           createdAt: Between(targetMonth, targetMonthLastDay),
           check: Not(RequestType.WAITING),
+          ...(userId && { userId }),
         },
       });
 

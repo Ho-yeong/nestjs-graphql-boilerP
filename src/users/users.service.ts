@@ -105,6 +105,8 @@ export class UsersService {
           if (vData) {
             if (vData.type === VacationEnum.DayOff) {
               vacationWorkTime = 8;
+            } else if (vData.type === VacationEnum.official) {
+              vacationWorkTime = 0;
             }
           }
 
