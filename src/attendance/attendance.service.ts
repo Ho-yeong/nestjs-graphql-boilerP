@@ -15,7 +15,7 @@ import { BotService } from '../bot/bot.service';
 import * as moment from 'moment-timezone';
 import { Vacation } from './entities/vacation.entity';
 import { AttendanceMonthlyData, GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getMonthlyWork.dto';
-import { UserRole } from '../users/entities/users.constants';
+import { UserRole, UserTeamRole } from '../users/entities/users.constants';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 import { Cron } from '@nestjs/schedule';
@@ -26,6 +26,8 @@ import { GetMonthlyAverageInput, GetMonthlyAverageOutput, MonthlyAverageProp } f
 import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
 import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 import { GetAllRequestsInput, GetAllRequestsOutput } from './dtos/getAllRequests.dto';
+import { GetMyAttendanceInput, GetMyAttendanceOutput, MyAttendanceProp } from './dtos/getMyAttendance.dto';
+import { GetMyRequestsInput, GetMyRequestsOutput } from './dtos/getMyRequests.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -229,7 +231,7 @@ export class AttendanceService {
     const t1 = moment(workEnd);
     const t2 = moment(workStart);
     const diff = moment.duration(t1.diff(t2)).asHours();
-    const result = Math.ceil(diff - mealTime);
+    const result = Math.floor(diff - mealTime);
     return result < 0 ? 0 : result;
   }
 
@@ -242,19 +244,34 @@ export class AttendanceService {
       }
       // 오늘 기준으로 출퇴근 기록 조회해서 있으면 재입력 못하게 처리
 
+      const today = new Date();
+      const workStartStandardTime = new Date(
+        `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 10:30:00`,
+      );
+
       if (workType === WorkType.START) {
         await this.ARepo.insert(
           this.ARepo.create({
             userId,
             user,
-            workStart: new Date(),
+            workStart: today < workStartStandardTime ? workStartStandardTime : today,
           }),
         );
 
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 화이팅하세요 😍`);
       } else {
+        const AData = await this.ARepo.findOne(workId);
+        if (!AData) {
+          return { ok: false, error: '출근 정보가 없습니다.' };
+        }
+
+        const limitDate = moment(AData.workStart).add(1, 'days').toDate();
+        const limitTime = new Date(
+          `${limitDate.getFullYear()}-${limitDate.getMonth() + 1}-${limitDate.getDate()} 02:00:00`,
+        );
+
         await this.ARepo.update(workId, {
-          workEnd: new Date(),
+          workEnd: today > limitTime ? limitTime : today,
         });
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 고생하셨습니다. 🚗`);
       }
@@ -373,7 +390,7 @@ export class AttendanceService {
         },
       });
 
-      const result = await this.RRepo.insert(
+      await this.RRepo.insert(
         this.RRepo.create({
           userId,
           user,
@@ -568,6 +585,9 @@ export class AttendanceService {
 
       // 전체 유저중에서
       for (const i of users) {
+        if (i.teamRole === UserTeamRole.Leader) {
+          continue;
+        }
         const check = await this.ARepo.findOne({
           where: {
             userId: i.id,
@@ -599,12 +619,18 @@ export class AttendanceService {
     }
   }
 
-  async getDailyAverage({ year, month, day }: GetDailyAverageInput): Promise<GetDailyAverageOutput> {
+  async getDailyAverage({ year, month, day, team }: GetDailyAverageInput): Promise<GetDailyAverageOutput> {
     try {
       const targetDay = `${year}-${month}-${day} 00:00:00`;
       const targetDayLast = `${year}-${month}-${day} 23:59:59`;
 
-      const allUsers = await this.URepo.find();
+      const allUsers = await this.URepo.find({
+        ...(team && {
+          where: {
+            team,
+          },
+        }),
+      });
 
       const attendances = await this.ARepo.find({
         where: {
@@ -620,19 +646,22 @@ export class AttendanceService {
 
       const users: DailyAverageProp[] = [];
       let entireWorkTime = 0;
-
+      let numberOfLeaders = 0;
       for (const i of allUsers) {
         let workTime = 0;
         const tmp: DailyAverageProp = {
           id: i.id,
           name: i.name,
           team: i.team,
+          teamRole: i.teamRole,
         };
         const userAData = attendances.find((v) => v.userId === i.id);
         if (userAData) {
           if (userAData.workEnd) {
             workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd);
-            entireWorkTime += workTime;
+            if (i.teamRole !== UserTeamRole.Leader) {
+              entireWorkTime += workTime;
+            }
           }
           tmp.workStart = userAData.workStart;
           tmp.workEnd = userAData.workEnd ? userAData.workEnd : null;
@@ -657,12 +686,14 @@ export class AttendanceService {
             }
           }
         }
+        if (i.teamRole === UserTeamRole.Leader) {
+          numberOfLeaders++;
+        }
         users.push(tmp);
       }
 
-      return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
+      return { ok: true, users, entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1) };
     } catch (err) {
-      console.log(err);
       return { ok: false, error: 'Get user daily average failed' };
     }
   }
@@ -706,16 +737,23 @@ export class AttendanceService {
     }
   }
 
-  async getMonthlyAverage({ year, month }: GetMonthlyAverageInput): Promise<GetMonthlyAverageOutput> {
+  async getMonthlyAverage({ year, month, team }: GetMonthlyAverageInput): Promise<GetMonthlyAverageOutput> {
     try {
       const targetMonth = new Date(`${year}-${month}`);
       const lastDay = new Date(year, month, 0).getDate();
       const targetMonthLastDay = new Date(`${year}-${month}-${lastDay} 23:59:59`);
 
-      const allUsers = await this.URepo.find();
+      const allUsers = await this.URepo.find({
+        ...(team && {
+          where: {
+            team,
+          },
+        }),
+      });
 
       const users: MonthlyAverageProp[] = [];
       let entireWorkTime = 0;
+      let numberOfLeaders = 0;
 
       for (const user of allUsers) {
         const aData = await this.ARepo.find({
@@ -736,9 +774,13 @@ export class AttendanceService {
           id: user.id,
           name: user.name,
           team: user.team,
+          teamRole: user.teamRole,
         };
         let monthWorkTime = 0;
         let MonthVacationTime = 0;
+        if (user.teamRole === UserTeamRole.Leader) {
+          numberOfLeaders++;
+        }
         for (let i = 1; i <= lastDay; i++) {
           const userAData = aData.find((v) => v.workStart.getDate() === i);
           if (userAData) {
@@ -750,25 +792,33 @@ export class AttendanceService {
           if (userVData) {
             if (userVData.type === VacationEnum.DayOff) {
               MonthVacationTime += 8;
-            } else {
+            } else if (userVData.type === VacationEnum.PMOff || userVData.type === VacationEnum.AMOff) {
               MonthVacationTime += 4;
             }
           }
         }
         tmp.duration = monthWorkTime + MonthVacationTime;
-        entireWorkTime += tmp.duration;
+        if (user.teamRole !== UserTeamRole.Leader) {
+          entireWorkTime += tmp.duration;
+        }
         users.push(tmp);
       }
 
-      return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
+      return { ok: true, users, entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1) };
     } catch (err) {
       return { ok: false, error: 'Get user monthly average failed' };
     }
   }
 
-  async getWeeklyAverage({ startDate, endDate }: GetWeeklyAverageInput): Promise<GetWeeklyAverageOutput> {
+  async getWeeklyAverage({ startDate, endDate, team }: GetWeeklyAverageInput): Promise<GetWeeklyAverageOutput> {
     try {
-      const allUsers = await this.URepo.find();
+      const allUsers = await this.URepo.find({
+        ...(team && {
+          where: {
+            team,
+          },
+        }),
+      });
 
       const users: MonthlyAverageProp[] = [];
       let entireWorkTime = 0;
@@ -792,6 +842,7 @@ export class AttendanceService {
           id: user.id,
           name: user.name,
           team: user.team,
+          teamRole: user.teamRole,
         };
         let WorkTime = 0;
         let VacationTime = 0;
@@ -804,7 +855,7 @@ export class AttendanceService {
         for (let i = 0; i < vData.length; i++) {
           if (vData[i].type === VacationEnum.DayOff) {
             VacationTime += 8;
-          } else {
+          } else if (vData[i].type === VacationEnum.AMOff || vData[i].type === VacationEnum.PMOff) {
             VacationTime += 4;
           }
         }
@@ -838,6 +889,84 @@ export class AttendanceService {
       return { ok: true, requests };
     } catch (error) {
       return { ok: false, error: 'Get all requests failed' };
+    }
+  }
+
+  async getMyAttendance({ year, month }: GetMyAttendanceInput, user: User): Promise<GetMyAttendanceOutput> {
+    try {
+      const targetMonth = new Date(`${year}-${month}`);
+      const lastDay = new Date(year, month, 0).getDate();
+      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay} 23:59:59`);
+
+      const aData = await this.ARepo.find({
+        where: {
+          workStart: Between(targetMonth, targetMonthLastDay),
+          userId: user.id,
+        },
+      });
+
+      const vData = await this.VRepo.find({
+        where: {
+          date: Between(targetMonth, targetMonthLastDay),
+          userId: user.id,
+        },
+      });
+
+      const data: MyAttendanceProp[] = [];
+      let monthWorkTime = 0;
+      let MonthVacationTime = 0;
+      let workDay = 0;
+
+      for (let i = 1; i <= lastDay; i++) {
+        const tmp: MyAttendanceProp = {};
+
+        const userAData = aData.find((v) => v.workStart.getDate() === i);
+        if (userAData) {
+          tmp.workStart = userAData.workStart;
+          if (userAData.workEnd) {
+            tmp.workEnd = userAData.workEnd;
+            tmp.duration = this.calcWorkTime(userAData.workStart, userAData.workEnd);
+            monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd);
+            workDay++;
+          }
+        }
+        const userVData = vData.find((v) => v.date.getDate() === i);
+        if (userVData) {
+          if (userVData.type === VacationEnum.DayOff) {
+            MonthVacationTime += 8;
+            workDay++;
+          } else if (userVData.type === VacationEnum.PMOff || userVData.type === VacationEnum.AMOff) {
+            MonthVacationTime += 4;
+          }
+          tmp.vacation = userVData.type;
+        }
+        if (userVData || userAData) {
+          data.push(tmp);
+        }
+      }
+
+      return { ok: true, data, entireAvg: ((MonthVacationTime + monthWorkTime) / workDay).toFixed(1) };
+    } catch (err) {
+      return { ok: false, error: 'Get attendance info failed' };
+    }
+  }
+
+  async getMyRequests({ year, month }: GetMyRequestsInput, user: User): Promise<GetMyRequestsOutput> {
+    try {
+      const targetMonth = new Date(`${year}-${month}`);
+      const lastDay = new Date(year, month, 0).getDate();
+      const targetMonthLastDay = new Date(`${year}-${month}-${lastDay} 23:59:59`);
+
+      const data = await this.RRepo.find({
+        where: {
+          createdAt: Between(targetMonth, targetMonthLastDay),
+          userId: user.id,
+        },
+      });
+
+      return { ok: true, requests: data };
+    } catch (error) {
+      return { ok: false, error: 'Get requests failed' };
     }
   }
 }

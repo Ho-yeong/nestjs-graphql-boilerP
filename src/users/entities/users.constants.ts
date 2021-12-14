@@ -3,23 +3,29 @@ export enum UserRole {
   Member = 'Member',
 }
 
+export enum UserTeamRole {
+  Member = 'Member',
+  Leader = 'Leader',
+}
+
 export enum UserTeam {
   CEO = 'CEO',
   PD = 'PD',
   AD = 'AD',
   TD = 'TD',
-  PM = 'PM',
   Server = 'Server',
   Client = 'Client',
   Plan = 'Plan',
-  Character = 'Character',
   Background = 'Background',
+  Character = 'Character',
+  Animation = 'Animation',
   UI = 'UI',
   Effect = 'Effect',
-  Animation = 'Animation',
   FinancialSupport = 'FinancialSupport',
   LQA = 'LQA',
   QA = 'QA',
+  PM = 'PM',
   PersonnelManagement = 'PersonnelManagement',
   Marketing = 'Marketing',
+  CS = 'CS',
 }

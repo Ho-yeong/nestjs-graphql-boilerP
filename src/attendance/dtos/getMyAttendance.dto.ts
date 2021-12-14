@@ -1,40 +1,18 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { CoreOutput } from '../../common/dtos/output.dto';
 import { VacationEnum } from '../entities/request.constant';
-import { UserTeam, UserTeamRole } from '../../users/entities/users.constants';
 
 @InputType()
-export class GetDailyAverageInput {
+export class GetMyAttendanceInput {
   @Field((type) => Number)
   year: number;
 
   @Field((type) => Number)
   month: number;
-
-  @Field((type) => Number)
-  day: number;
-
-  @Field((type) => UserTeam, { nullable: true })
-  team?: UserTeam;
 }
 
 @ObjectType()
-export class DailyAverageProp {
-  @Field((type) => Number)
-  id: number;
-
-  @Field((type) => Number, { nullable: true })
-  attendanceId?: number;
-
-  @Field((type) => String)
-  name: string;
-
-  @Field((type) => String)
-  team: string;
-
-  @Field((type) => UserTeamRole)
-  teamRole: UserTeamRole;
-
+export class MyAttendanceProp {
   @Field((type) => Date, { nullable: true })
   workStart?: Date;
 
@@ -49,10 +27,10 @@ export class DailyAverageProp {
 }
 
 @ObjectType()
-export class GetDailyAverageOutput extends CoreOutput {
+export class GetMyAttendanceOutput extends CoreOutput {
+  @Field((type) => [MyAttendanceProp], { nullable: true })
+  data?: MyAttendanceProp[];
+
   @Field((type) => String, { nullable: true })
   entireAvg?: string;
-
-  @Field((type) => [DailyAverageProp], { nullable: true })
-  users?: DailyAverageProp[];
 }

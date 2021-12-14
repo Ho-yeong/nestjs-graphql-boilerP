@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { CoreOutput } from '../../common/dtos/output.dto';
-import { UserRole, UserTeam } from '../entities/users.constants';
+import { UserRole, UserTeam, UserTeamRole } from '../entities/users.constants';
 
 @ObjectType()
 export class AllUserOutputProp {
@@ -18,6 +18,9 @@ export class AllUserOutputProp {
 
   @Field((type) => UserRole)
   role: UserRole;
+
+  @Field((type) => UserTeamRole)
+  teamRole: UserTeamRole;
 
   @Field((type) => Number)
   totalVacation: number;

@@ -172,7 +172,7 @@ export class UsersService {
       const user = await this.users.findOneOrFail(
         { id },
         {
-          select: ['id', 'email', 'role', 'team', 'name'],
+          select: ['id', 'email', 'role', 'team', 'name', 'teamRole'],
         },
       );
 
@@ -181,7 +181,6 @@ export class UsersService {
         user,
       };
     } catch (error) {
-      console.log(error);
       return { ok: false, error: 'User not found' };
     }
   }
@@ -220,7 +219,7 @@ export class UsersService {
     }
   }
 
-  async editAccount({ id, email, name, team, totalVacation }: CreateAccountInput): Promise<CoreOutput> {
+  async editAccount({ id, email, name, team, totalVacation, teamRole }: CreateAccountInput): Promise<CoreOutput> {
     try {
       const user = await this.users.findOne(id);
       if (!user) {
@@ -231,12 +230,12 @@ export class UsersService {
       user.name = name;
       user.team = team;
       user.totalVacation = totalVacation;
+      user.teamRole = teamRole;
 
       await this.users.update(id, user);
 
       return { ok: true };
     } catch (err) {
-      console.log(err);
       return { ok: false, error: "Couldn't create account" };
     }
   }

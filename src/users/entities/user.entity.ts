@@ -4,13 +4,14 @@ import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 import { IsEnum, IsNumber, IsString } from 'class-validator';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
-import { UserRole, UserTeam } from './users.constants';
+import { UserRole, UserTeam, UserTeamRole } from './users.constants';
 import { Reservation } from '../../reservation/entities/reservation.entity';
 import { Request } from '../../attendance/entities/request.entity';
 import { Attendance } from '../../attendance/entities/attendance.entity';
 
 registerEnumType(UserRole, { name: 'UserRole' });
 registerEnumType(UserTeam, { name: 'UserTeam' });
+registerEnumType(UserTeamRole, { name: 'UserTeamRole' });
 
 @InputType('UserInputType', { isAbstract: true })
 @ObjectType()
@@ -40,6 +41,11 @@ export class User extends CoreEntity {
   @Field((type) => UserRole)
   @IsEnum(UserRole)
   role: UserRole;
+
+  @Column({ type: 'enum', enum: UserTeamRole, default: UserTeamRole.Member })
+  @Field((type) => UserTeamRole)
+  @IsEnum(UserTeamRole)
+  teamRole: UserTeamRole;
 
   @Column({ default: 0, type: 'float' })
   @Field((type) => Number)

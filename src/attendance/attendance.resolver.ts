@@ -9,7 +9,6 @@ import { ModifyVacationInput, ModifyVacationOutput } from './dtos/modifyVacation
 import { GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getMonthlyWork.dto';
 import { AuthUser } from '../auth/authUser.decorator';
 import { User } from '../users/entities/user.entity';
-import { CurrentIP } from '../auth/currentIP.decorator';
 import { COMPANY_IPS } from './ip.constant';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
@@ -19,6 +18,8 @@ import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAtte
 import { GetMonthlyAverageInput, GetMonthlyAverageOutput } from './dtos/getMonthlyAverage.dto';
 import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
 import { GetAllRequestsInput, GetAllRequestsOutput } from './dtos/getAllRequests.dto';
+import { GetMyAttendanceInput, GetMyAttendanceOutput } from './dtos/getMyAttendance.dto';
+import { GetMyRequestsInput, GetMyRequestsOutput } from './dtos/getMyRequests.dto';
 
 @Resolver()
 export class AttendanceResolver {
@@ -112,5 +113,21 @@ export class AttendanceResolver {
   @Query((returns) => GetAllRequestsOutput)
   async getAllRequests(@Args('input') getAllRequestsInput: GetAllRequestsInput): Promise<GetAllRequestsOutput> {
     return this.aService.getAllRequests(getAllRequestsInput);
+  }
+
+  @Query((returns) => GetMyAttendanceOutput)
+  async getMyAttendance(
+    @Args('input') getMyAttendanceInput: GetMyAttendanceInput,
+    @AuthUser() user: User,
+  ): Promise<GetMyAttendanceOutput> {
+    return this.aService.getMyAttendance(getMyAttendanceInput, user);
+  }
+
+  @Query((returns) => GetMyRequestsOutput)
+  async getMyRequests(
+    @Args('input') getMyRequestsInput: GetMyRequestsInput,
+    @AuthUser() user: User,
+  ): Promise<GetMyRequestsOutput> {
+    return this.aService.getMyRequests(getMyRequestsInput, user);
   }
 }

@@ -1,5 +1,6 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { CoreOutput } from '../../common/dtos/output.dto';
+import { UserTeam, UserTeamRole } from '../../users/entities/users.constants';
 
 @InputType()
 export class GetMonthlyAverageInput {
@@ -8,6 +9,9 @@ export class GetMonthlyAverageInput {
 
   @Field((type) => Number)
   month: number;
+
+  @Field((type) => UserTeam, { nullable: true })
+  team?: UserTeam;
 }
 
 @ObjectType()
@@ -20,6 +24,9 @@ export class MonthlyAverageProp {
 
   @Field((type) => String)
   team: string;
+
+  @Field((type) => UserTeamRole)
+  teamRole: UserTeamRole;
 
   @Field((type) => Number, { nullable: true })
   duration?: number;

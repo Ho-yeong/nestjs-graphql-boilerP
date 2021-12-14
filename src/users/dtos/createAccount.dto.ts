@@ -10,4 +10,5 @@ export class CreateAccountInput extends OmitType(User, [
   'vacation',
   'requests',
   'reservations',
+  'attendances',
 ]) {}
