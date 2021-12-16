@@ -133,17 +133,30 @@ export class AttendanceService {
         }
       }
 
+      const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 02:00:01`);
       const todayWork = await this.ARepo.findOne({
         where: {
           userId,
-          workEnd: null,
+          workStart: MoreThan(todayZero),
         },
         order: {
           workStart: 'DESC',
         },
       });
 
-      return { ok: true, vacation: user.vacation, totalVacation: user.totalVacation, weekly, monthlyTime, todayWork };
+      const limitDate = todayWork ? moment(todayWork.workStart).add(1, 'days').toDate() : new Date();
+      const limitTime = new Date(
+        `${limitDate.getFullYear()}-${limitDate.getMonth() + 1}-${limitDate.getDate()} 02:00:00`,
+      );
+
+      return {
+        ok: true,
+        vacation: user.vacation,
+        totalVacation: user.totalVacation,
+        weekly,
+        monthlyTime,
+        todayWork: new Date() < limitTime ? todayWork : null,
+      };
     } catch (error) {
       return { ok: false, error: 'Get user information failed' };
     }
@@ -408,9 +421,9 @@ export class AttendanceService {
         text = ` 퇴근시간`;
       }
 
-      await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
-      await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(GwangHo, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(Sua, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
+      // await this.botService.sendMessageByEmail(Jimin, `${user.name}님에게서 ${text} 수정요청이 왔습니다.`);
 
       await this.botService.sendMessageByEmail(user.email, `${text} 수정요청을 정상적으로 보냈습니다. 🤷‍♂️`);
 

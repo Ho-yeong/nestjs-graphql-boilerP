@@ -77,6 +77,7 @@ import { AppController } from './app.controller';
       AppKey2: process.env.BOT2KEY,
       ApiUrl: process.env.API_URL,
     }),
+    // SocketModule,
   ],
   controllers: [AppController],
   providers: [],
