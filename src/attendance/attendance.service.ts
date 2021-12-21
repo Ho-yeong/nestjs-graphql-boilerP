@@ -133,21 +133,15 @@ export class AttendanceService {
         }
       }
 
-      const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 02:00:01`);
       const todayWork = await this.ARepo.findOne({
         where: {
           userId,
-          workStart: MoreThan(todayZero),
+          workEnd: null,
         },
         order: {
           workStart: 'DESC',
         },
       });
-
-      const limitDate = todayWork ? moment(todayWork.workStart).add(1, 'days').toDate() : new Date();
-      const limitTime = new Date(
-        `${limitDate.getFullYear()}-${limitDate.getMonth() + 1}-${limitDate.getDate()} 02:00:00`,
-      );
 
       return {
         ok: true,
@@ -155,7 +149,7 @@ export class AttendanceService {
         totalVacation: user.totalVacation,
         weekly,
         monthlyTime,
-        todayWork: new Date() < limitTime ? todayWork : null,
+        todayWork,
       };
     } catch (error) {
       return { ok: false, error: 'Get user information failed' };
@@ -244,7 +238,10 @@ export class AttendanceService {
     const t1 = moment(workEnd);
     const t2 = moment(workStart);
     const diff = moment.duration(t1.diff(t2)).asHours();
-    const result = Math.floor(diff - mealTime);
+    let result = Math.floor(diff - mealTime);
+    if (result > 14) {
+      result = 0;
+    }
     return result < 0 ? 0 : result;
   }
 

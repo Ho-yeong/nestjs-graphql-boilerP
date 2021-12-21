@@ -11,14 +11,11 @@ import { JwtModule } from './jwt/jwt.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { Reservation } from './reservation/entities/reservation.entity';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SocketModule } from './socket/socket.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { Attendance } from './attendance/entities/attendance.entity';
 import { Request } from './attendance/entities/request.entity';
 import { BotModule } from './bot/bot.module';
 import { Vacation } from './attendance/entities/vacation.entity';
-import { ResponseInterceptor } from './auth/reponse.interceptor';
-import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 
 @Module({
