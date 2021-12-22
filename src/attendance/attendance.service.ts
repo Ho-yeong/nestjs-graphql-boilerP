@@ -132,16 +132,18 @@ export class AttendanceService {
           monthlyTime += vacationWorkTime;
         }
       }
+      const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 02:00:01`);
 
-      const todayWork = await this.ARepo.findOne({
-        where: {
-          userId,
-          workEnd: null,
-        },
-        order: {
-          workStart: 'DESC',
-        },
-      });
+      const todayWork =
+        (await this.ARepo.findOne({
+          where: {
+            userId,
+            workEnd: null,
+          },
+          order: {
+            workStart: 'DESC',
+          },
+        })) ?? (await this.ARepo.findOne({ where: { userId, workEnd: MoreThan(todayZero) }, order: { id: 'DESC' } }));
 
       return {
         ok: true,
