@@ -489,7 +489,7 @@ export class AttendanceService {
           // 저장되어 있던게 연차이고 새로 받는 휴가가 공가일때 -1
         } else if (data.type === VacationEnum.DayOff && type === VacationEnum.official) {
           await this.URepo.update(userId, {
-            vacation: () => `vacation - ${num}`,
+            vacation: () => `vacation - 1`,
           });
           // 저장되어 있던게 반차이고 새로 받는 휴가가 공가일때 -0.5
         } else if (
@@ -497,7 +497,7 @@ export class AttendanceService {
           (data.type === VacationEnum.PMOff && type === VacationEnum.official)
         ) {
           await this.URepo.update(userId, {
-            vacation: () => `vacation - ${num}`,
+            vacation: () => `vacation - 0.5`,
           });
         }
 
