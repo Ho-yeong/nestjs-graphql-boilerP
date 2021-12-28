@@ -24,7 +24,6 @@ import { ModifyAttendanceInput, ModifyAttendanceOutput } from './dtos/modifyAtte
 import { DeleteAttendanceInput, DeleteAttendanceOutput } from './dtos/deleteAttendance.dto';
 import { GetMonthlyAverageInput, GetMonthlyAverageOutput, MonthlyAverageProp } from './dtos/getMonthlyAverage.dto';
 import { GetWeeklyAverageInput, GetWeeklyAverageOutput } from './dtos/getWeeklyAverage.dto';
-import { GwangHo, Jimin, Sua } from '../bot/bot.constant';
 import { GetAllRequestsInput, GetAllRequestsOutput } from './dtos/getAllRequests.dto';
 import { GetMyAttendanceInput, GetMyAttendanceOutput, MyAttendanceProp } from './dtos/getMyAttendance.dto';
 import { GetMyRequestsInput, GetMyRequestsOutput } from './dtos/getMyRequests.dto';
@@ -86,6 +85,8 @@ export class AttendanceService {
         let vacationTime = 4;
         if (i.type == VacationEnum.DayOff) {
           vacationTime = 8;
+        } else if (i.type === VacationEnum.official || i.type === VacationEnum.halfOfficial) {
+          vacationTime = 0;
         }
         weekly += vacationTime;
       }
@@ -115,7 +116,7 @@ export class AttendanceService {
         if (vData) {
           if (vData.type === VacationEnum.DayOff) {
             vacationWorkTime = 8;
-          } else if (vData.type === VacationEnum.official) {
+          } else if (vData.type === VacationEnum.official || vData.type === VacationEnum.halfOfficial) {
             vacationWorkTime = 0;
           }
         }
@@ -195,7 +196,7 @@ export class AttendanceService {
           let vacationWorkTime = 4;
           if (vData.type === VacationEnum.DayOff) {
             vacationWorkTime = 8;
-          } else if (vData.type === VacationEnum.official) {
+          } else if (vData.type === VacationEnum.official || vData.type === VacationEnum.halfOfficial) {
             vacationWorkTime = 0;
           }
           tmp.vacation = vacationWorkTime;
@@ -211,7 +212,6 @@ export class AttendanceService {
 
       return { ok: true, monthly };
     } catch (error) {
-      console.log(error);
       return { ok: false, error: 'Get user information failed' };
     }
   }
@@ -462,6 +462,10 @@ export class AttendanceService {
           typeText = '공가';
           num = 0;
           break;
+        case VacationEnum.halfOfficial:
+          typeText = '반공가';
+          num = 0;
+          break;
       }
       const data = await this.VRepo.findOne({
         where: {
@@ -489,14 +493,18 @@ export class AttendanceService {
             vacation: () => `vacation - 0.5`,
           });
           // 저장되어 있던게 연차이고 새로 받는 휴가가 공가일때 -1
-        } else if (data.type === VacationEnum.DayOff && type === VacationEnum.official) {
+        } else if (
+          data.type === VacationEnum.DayOff &&
+          (type === VacationEnum.official || type === VacationEnum.halfOfficial)
+        ) {
           await this.URepo.update(userId, {
             vacation: () => `vacation - 1`,
           });
           // 저장되어 있던게 반차이고 새로 받는 휴가가 공가일때 -0.5
         } else if (
-          (data.type === VacationEnum.AMOff && type === VacationEnum.official) ||
-          (data.type === VacationEnum.PMOff && type === VacationEnum.official)
+          (data.type === VacationEnum.AMOff &&
+            (type === VacationEnum.official || type === VacationEnum.halfOfficial)) ||
+          (data.type === VacationEnum.PMOff && (type === VacationEnum.official || type === VacationEnum.halfOfficial))
         ) {
           await this.URepo.update(userId, {
             vacation: () => `vacation - 0.5`,
@@ -572,7 +580,7 @@ export class AttendanceService {
       let num = 0.5;
       if (vacation.type === VacationEnum.DayOff) {
         num = 1;
-      } else if (vacation.type === VacationEnum.official) {
+      } else if (vacation.type === VacationEnum.official || vacation.type === VacationEnum.halfOfficial) {
         num = 0;
       }
 
@@ -689,7 +697,7 @@ export class AttendanceService {
             } else {
               tmp.duration = 8;
             }
-          } else if (userVData.type === VacationEnum.official) {
+          } else if (userVData.type === VacationEnum.official || userVData.type === VacationEnum.halfOfficial) {
           } else {
             if (tmp.duration) {
               tmp.duration += 4;
@@ -790,6 +798,8 @@ export class AttendanceService {
         };
         let monthWorkTime = 0;
         let MonthVacationTime = 0;
+        let officialVacationTime = 0;
+
         if (user.teamRole === UserTeamRole.Leader) {
           numberOfLeaders++;
         }
@@ -802,21 +812,34 @@ export class AttendanceService {
           }
           const userVData = vData.find((v) => v.date.getDate() === i);
           if (userVData) {
-            if (userVData.type === VacationEnum.DayOff) {
-              MonthVacationTime += 8;
-            } else if (userVData.type === VacationEnum.PMOff || userVData.type === VacationEnum.AMOff) {
-              MonthVacationTime += 4;
+            switch (userVData.type) {
+              case VacationEnum.DayOff:
+                MonthVacationTime += 8;
+                break;
+              case VacationEnum.official:
+                officialVacationTime += 8;
+                break;
+              case VacationEnum.halfOfficial:
+                officialVacationTime += 4;
+                break;
+              default:
+                MonthVacationTime += 4;
             }
           }
         }
         tmp.duration = monthWorkTime + MonthVacationTime;
+        tmp.officialVacationTime = officialVacationTime;
         if (user.teamRole !== UserTeamRole.Leader) {
           entireWorkTime += tmp.duration;
         }
         users.push(tmp);
       }
 
-      return { ok: true, users, entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1) };
+      return {
+        ok: true,
+        users,
+        entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1),
+      };
     } catch (err) {
       return { ok: false, error: 'Get user monthly average failed' };
     }
@@ -858,6 +881,7 @@ export class AttendanceService {
         };
         let WorkTime = 0;
         let VacationTime = 0;
+        let officialVacationTime = 0;
 
         for (let i = 0; i < aData.length; i++) {
           if (aData[i].workEnd) {
@@ -865,14 +889,23 @@ export class AttendanceService {
           }
         }
         for (let i = 0; i < vData.length; i++) {
-          if (vData[i].type === VacationEnum.DayOff) {
-            VacationTime += 8;
-          } else if (vData[i].type === VacationEnum.AMOff || vData[i].type === VacationEnum.PMOff) {
-            VacationTime += 4;
+          switch (vData[i].type) {
+            case VacationEnum.DayOff:
+              VacationTime += 8;
+              break;
+            case VacationEnum.official:
+              officialVacationTime += 8;
+              break;
+            case VacationEnum.halfOfficial:
+              officialVacationTime += 4;
+              break;
+            default:
+              VacationTime += 4;
           }
         }
 
         tmp.duration = WorkTime + VacationTime;
+        tmp.officialVacationTime = officialVacationTime;
         entireWorkTime += tmp.duration;
         users.push(tmp);
       }

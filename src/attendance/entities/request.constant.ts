@@ -3,6 +3,7 @@ export enum VacationEnum {
   AMOff,
   PMOff,
   official,
+  halfOfficial,
 }
 
 export enum WorkType {
