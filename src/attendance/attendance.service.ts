@@ -437,6 +437,16 @@ export class AttendanceService {
     if (authUser.role !== UserRole.Admin) {
       return { ok: false, error: 'Access denied' };
     }
+    // query 의 날짜가 현재의 날짜랑 다르면 false
+    let yearFlag = true;
+
+    const today = new Date();
+    const thisYear = today.getFullYear();
+    const queryYear = date.getFullYear();
+
+    if (thisYear !== queryYear) {
+      yearFlag = false;
+    }
 
     try {
       const user = await this.URepo.findOne(userId);
@@ -477,38 +487,40 @@ export class AttendanceService {
       // 같은 날짜에 저장된 휴가가 있을때
       if (data) {
         // 저장되어 있던 휴가가 반차 이고 새로 받는 휴가가 연차일때 +0.5
-        if (
-          (data.type === VacationEnum.AMOff && type === VacationEnum.DayOff) ||
-          (data.type === VacationEnum.PMOff && type === VacationEnum.DayOff)
-        ) {
-          await this.URepo.update(userId, {
-            vacation: () => `vacation + 0.5`,
-          });
-          // 저장되어 있던게 연차이고 새로 받는 휴가가 반차일때 -0.5
-        } else if (
-          (data.type === VacationEnum.DayOff && type === VacationEnum.AMOff) ||
-          (data.type === VacationEnum.DayOff && type === VacationEnum.PMOff)
-        ) {
-          await this.URepo.update(userId, {
-            vacation: () => `vacation - 0.5`,
-          });
-          // 저장되어 있던게 연차이고 새로 받는 휴가가 공가일때 -1
-        } else if (
-          data.type === VacationEnum.DayOff &&
-          (type === VacationEnum.official || type === VacationEnum.halfOfficial)
-        ) {
-          await this.URepo.update(userId, {
-            vacation: () => `vacation - 1`,
-          });
-          // 저장되어 있던게 반차이고 새로 받는 휴가가 공가일때 -0.5
-        } else if (
-          (data.type === VacationEnum.AMOff &&
-            (type === VacationEnum.official || type === VacationEnum.halfOfficial)) ||
-          (data.type === VacationEnum.PMOff && (type === VacationEnum.official || type === VacationEnum.halfOfficial))
-        ) {
-          await this.URepo.update(userId, {
-            vacation: () => `vacation - 0.5`,
-          });
+        if (yearFlag) {
+          if (
+            (data.type === VacationEnum.AMOff && type === VacationEnum.DayOff) ||
+            (data.type === VacationEnum.PMOff && type === VacationEnum.DayOff)
+          ) {
+            await this.URepo.update(userId, {
+              vacation: () => `vacation + 0.5`,
+            });
+            // 저장되어 있던게 연차이고 새로 받는 휴가가 반차일때 -0.5
+          } else if (
+            (data.type === VacationEnum.DayOff && type === VacationEnum.AMOff) ||
+            (data.type === VacationEnum.DayOff && type === VacationEnum.PMOff)
+          ) {
+            await this.URepo.update(userId, {
+              vacation: () => `vacation - 0.5`,
+            });
+            // 저장되어 있던게 연차이고 새로 받는 휴가가 공가일때 -1
+          } else if (
+            data.type === VacationEnum.DayOff &&
+            (type === VacationEnum.official || type === VacationEnum.halfOfficial)
+          ) {
+            await this.URepo.update(userId, {
+              vacation: () => `vacation - 1`,
+            });
+            // 저장되어 있던게 반차이고 새로 받는 휴가가 공가일때 -0.5
+          } else if (
+            (data.type === VacationEnum.AMOff &&
+              (type === VacationEnum.official || type === VacationEnum.halfOfficial)) ||
+            (data.type === VacationEnum.PMOff && (type === VacationEnum.official || type === VacationEnum.halfOfficial))
+          ) {
+            await this.URepo.update(userId, {
+              vacation: () => `vacation - 0.5`,
+            });
+          }
         }
 
         await this.VRepo.update(data.id, { date, type });
@@ -522,13 +534,14 @@ export class AttendanceService {
           authUser.email,
           `[${moment(date).format('MM월 DD일')}] ${user.name}님의 ${typeText}를 처리하셨습니다. 👍`,
         );
-
         return { ok: true, error: String(data.type), id: data.id };
         // 기존 날짜에 저장된 휴가가 없을 때
       } else {
-        await this.URepo.update(userId, {
-          vacation: () => `vacation + ${num}`,
-        });
+        if (yearFlag) {
+          await this.URepo.update(userId, {
+            vacation: () => `vacation + ${num}`,
+          });
+        }
 
         await this.botService.sendMessageByEmail(
           user.email,

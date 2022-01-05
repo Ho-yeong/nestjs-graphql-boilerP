@@ -17,6 +17,7 @@ import { BotService } from '../bot/bot.service';
 import { Vacation } from '../attendance/entities/vacation.entity';
 import { VacationEnum } from '../attendance/entities/request.constant';
 import { SendMessageInput, SendMessageOutput } from './dtos/sendMessage.dto';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class UsersService {
@@ -328,6 +329,20 @@ export class UsersService {
         ok: false,
         error,
       };
+    }
+  }
+
+  @Cron('0 4 1 1 *')
+  async initializeVacation() {
+    try {
+      await this.users.update(
+        {
+          id: MoreThan(0),
+        },
+        { vacation: 0 },
+      );
+    } catch (error) {
+      console.log(error);
     }
   }
 }
