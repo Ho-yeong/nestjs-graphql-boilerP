@@ -210,7 +210,7 @@ export class UsersService {
 
       await this.botService.sendMessageByEmail(
         input.email,
-        `${input.name}님, Vicgame Studios 입사를 축하드립니다 🎉🎉 지금부터 사내페이지(https://localhost:8000) 이용이 가능합니다 `,
+        `${input.name}님, Vicgame Studios 입사를 축하드립니다 🎉🎉 지금부터 사내페이지(https://conf.vicgamestudios.com) 이용이 가능합니다 `,
       );
 
       return { ok: true };

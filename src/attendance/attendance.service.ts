@@ -355,12 +355,27 @@ export class AttendanceService {
             }),
           );
         } else {
-          await this.ARepo.insert(
-            this.ARepo.create({
+          // 해당 날짜 출퇴근 기록이 없을떄, 출, 퇴근 리퀘스트를 둘 다 보낸 경우 -> 출근 리퀘스트 먼저 수락했을때 (반드시 출근 먼저 수락 해야함)
+          const requestDay = `${request.workDate.getFullYear()}-${
+            request.workDate.getMonth() + 1
+          }-${request.workDate.getDate()}`;
+
+          const min = new Date(`${requestDay} 00:00:00`);
+          const max = new Date(`${requestDay} 23:59:59`);
+
+          const attendance = await this.ARepo.findOne({
+            where: {
+              workStart: Between(min, max),
               userId: request.userId,
+            },
+          });
+          if (attendance) {
+            await this.ARepo.update(attendance.id, {
               workEnd: request.WillFixTime,
-            }),
-          );
+            });
+          } else {
+            return { ok: false, error: 'There is no work start record' };
+          }
           textBlock = '퇴근시간';
         }
       }
