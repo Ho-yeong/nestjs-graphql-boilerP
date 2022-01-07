@@ -13,7 +13,6 @@ import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constant
 import { PubSub } from 'graphql-subscriptions';
 import { Cron } from '@nestjs/schedule';
 import { EditReservationInput } from './dtos/editReservation.dto';
-import * as moment from 'moment-timezone';
 
 @Injectable()
 export class ReservationService {
@@ -287,7 +286,6 @@ export class ReservationService {
     }
   }
 
-  //TODO 예약 시간 변경
   async editReservation(user: User, { id, startAt, endAt }: EditReservationInput): Promise<CoreOutput> {
     try {
       const reservation = await this.RRepository.findOne(id, { relations: ['host'] });

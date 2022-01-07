@@ -1014,6 +1014,7 @@ export class AttendanceService {
           tmp.vacation = userVData.type;
         }
         if (userVData || userAData) {
+          tmp.day = i;
           data.push(tmp);
         }
       }

@@ -13,6 +13,9 @@ export class GetMyAttendanceInput {
 
 @ObjectType()
 export class MyAttendanceProp {
+  @Field((type) => Number, { nullable: true })
+  day?: number;
+
   @Field((type) => Date, { nullable: true })
   workStart?: Date;
 
