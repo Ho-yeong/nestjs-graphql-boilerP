@@ -61,6 +61,7 @@ export class ReservationService {
 
       await this.RRepository.save(reservation);
       for (const p of reservation.participantIds) {
+        reservation.participants = [];
         const parti = await this.userRepository.findOne(p);
         if (parti) {
           reservation.participants.push(parti);
@@ -69,6 +70,7 @@ export class ReservationService {
 
       return { ok: true, reservation };
     } catch (err) {
+      console.log(err);
       return { ok: false, error: "Couldn't create a reservation" };
     }
   }
