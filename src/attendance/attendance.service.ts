@@ -256,7 +256,7 @@ export class AttendanceService {
 
       const today = new Date();
       const workStartStandardTime = new Date(
-        `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 10:30:00`,
+        `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 10:00:00`,
       );
 
       if (workType === WorkType.START) {
@@ -714,6 +714,7 @@ export class AttendanceService {
           tmp.workEnd = userAData.workEnd ? userAData.workEnd : null;
           tmp.duration = userAData.workEnd ? workTime : null;
           tmp.attendanceId = userAData.id;
+          tmp.dinner = userAData.dinner;
         }
         const userVData = vacations.find((v) => v.userId === i.id);
         if (userVData) {
@@ -750,12 +751,14 @@ export class AttendanceService {
     workStart,
     workEnd,
     userId,
+    dinner,
   }: ModifyAttendanceInput): Promise<ModifyAttendanceOutput> {
     try {
       if (attendanceId) {
         await this.ARepo.update(attendanceId, {
           ...(workStart && { workStart }),
           ...(workEnd && { workEnd }),
+          ...(dinner !== undefined && { dinner }),
         });
 
         return { ok: true, attendanceId };
@@ -766,6 +769,7 @@ export class AttendanceService {
           userId,
           ...(workStart && { workStart }),
           ...(workEnd && { workEnd }),
+          ...(dinner !== undefined && { dinner }),
         }),
       );
 

@@ -46,6 +46,9 @@ export class DailyAverageProp {
 
   @Field((type) => VacationEnum, { nullable: true })
   vacation?: VacationEnum;
+
+  @Field((type) => Boolean, { nullable: true })
+  dinner?: boolean;
 }
 
 @ObjectType()

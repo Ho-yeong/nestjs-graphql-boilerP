@@ -14,6 +14,9 @@ export class ModifyAttendanceInput {
 
   @Field((type) => Date, { nullable: true })
   workEnd?: Date;
+
+  @Field((type) => Boolean, { nullable: true })
+  dinner?: boolean;
 }
 
 @ObjectType()
