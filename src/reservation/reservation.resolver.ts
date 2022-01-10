@@ -9,7 +9,7 @@ import { CoreOutput } from '../common/dtos/output.dto';
 import { DeleteReservationInput } from './dtos/deleteReservation.dto';
 import { GetMyReservationOutput } from './dtos/getMyReservation.dto';
 import { Inject } from '@nestjs/common';
-import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constants';
+import { AVAILABLE_ROOMS, PUB_SUB } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { Reservation } from './entities/reservation.entity';
 import { EditReservationInput } from './dtos/editReservation.dto';
@@ -63,15 +63,15 @@ export class ReservationResolver {
     return this.reserveService.getAvailableRooms();
   }
 
-  @Subscription((returns) => [Reservation], {
-    resolve: (payload) => {
-      return payload;
-    },
-  })
-  @Role(['Any'])
-  getTodayRoomsSubscription() {
-    return this.pubSub.asyncIterator(TODAY_ROOMS);
-  }
+  // @Subscription((returns) => [Reservation], {
+  //   resolve: (payload) => {
+  //     return payload;
+  //   },
+  // })
+  // @Role(['Any'])
+  // getTodayRoomsSubscription() {
+  //   return this.pubSub.asyncIterator(TODAY_ROOMS);
+  // }
 
   @Query((returns) => GetReservationOutput)
   @Role(['Any'])

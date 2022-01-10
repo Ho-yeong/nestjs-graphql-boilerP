@@ -1,6 +1,6 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { IsDate, IsNumber } from 'class-validator';
+import { IsBoolean, IsDate, IsNumber } from 'class-validator';
 import { User } from '../../users/entities/user.entity';
 
 @InputType('AttendanceInputType', { isAbstract: true })
@@ -30,4 +30,9 @@ export class Attendance {
   @Field((type) => Date, { nullable: true })
   @IsDate()
   workEnd?: Date;
+
+  @Column({ default: false })
+  @Field((type) => Boolean, { defaultValue: false })
+  @IsBoolean()
+  dinner: boolean;
 }

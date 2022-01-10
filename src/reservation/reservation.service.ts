@@ -9,9 +9,8 @@ import { DeleteReservationInput } from './dtos/deleteReservation.dto';
 import { CoreOutput } from '../common/dtos/output.dto';
 import { UserRole } from '../users/entities/users.constants';
 import { GetMyReservationOutput } from './dtos/getMyReservation.dto';
-import { AVAILABLE_ROOMS, PUB_SUB, TODAY_ROOMS } from '../common/common.constants';
+import { PUB_SUB } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
-import { Cron } from '@nestjs/schedule';
 import { EditReservationInput } from './dtos/editReservation.dto';
 
 @Injectable()
@@ -63,14 +62,11 @@ export class ReservationService {
       await this.RRepository.save(reservation);
       for (const p of reservation.participantIds) {
         const parti = await this.userRepository.findOne(p);
-        if (!reservation.participants) {
-          reservation.participants = [];
+        if (parti) {
+          reservation.participants.push(parti);
         }
-        reservation.participants.push(parti);
       }
 
-      await this.availableRoomsScheduler();
-      await this.getTodayReservationsScheduler();
       return { ok: true, reservation };
     } catch (err) {
       return { ok: false, error: "Couldn't create a reservation" };
@@ -89,17 +85,7 @@ export class ReservationService {
         relations: ['host'],
       });
 
-      for (const i of reservations) {
-        for (const p of i.participantIds) {
-          const parti = await this.userRepository.findOne(p);
-          if (!i.participants) {
-            i.participants = [];
-          }
-          i.participants.push(parti);
-        }
-      }
-
-      return { ok: true, reservations };
+      return { ok: true, reservations: await this.putParticipants(reservations) };
     } catch (err) {
       console.log(err);
       return { ok: false, error: "Couldn't get reservations" };
@@ -127,8 +113,6 @@ export class ReservationService {
       }
 
       await this.RRepository.delete(id);
-      await this.availableRoomsScheduler();
-      await this.getTodayReservationsScheduler();
       return { ok: true };
     } catch (err) {
       return { ok: false, error: "Couldn't delete a reservation" };
@@ -147,19 +131,6 @@ export class ReservationService {
     } catch (err) {
       console.log(err);
       return { ok: false, error: "Couldn't get reservations" };
-    }
-  }
-
-  async getTodayReservationsScheduler() {
-    try {
-      const reservations = await this.getTodayRooms();
-      if (!reservations) {
-        return;
-      }
-
-      await this.pubSub.publish(TODAY_ROOMS, reservations);
-    } catch (err) {
-      console.log(err);
     }
   }
 
@@ -189,20 +160,20 @@ export class ReservationService {
       return { ok: false, error: "Couldn't get reservations" };
     }
   }
-
-  @Cron('*/30 * * * *')
-  async availableRoomsScheduler() {
-    try {
-      const reservations = await this.getCurrentRooms();
-      if (!reservations) {
-        return;
-      }
-
-      await this.pubSub.publish(AVAILABLE_ROOMS, reservations);
-    } catch (err) {
-      console.log(err);
-    }
-  }
+  //
+  // @Cron('*/30 * * * *')
+  // async availableRoomsScheduler() {
+  //   try {
+  //     const reservations = await this.getCurrentRooms();
+  //     if (!reservations) {
+  //       return;
+  //     }
+  //
+  //     await this.pubSub.publish(AVAILABLE_ROOMS, reservations);
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // }
 
   async getCurrentRooms(): Promise<Reservation[]> {
     try {
@@ -214,20 +185,31 @@ export class ReservationService {
         relations: ['host'],
       });
 
-      for (const i of reservations) {
-        for (const p of i.participantIds) {
-          const parti = await this.userRepository.findOne(p);
-          if (!i.participants) {
-            i.participants = [];
-          }
-          i.participants.push(parti);
-        }
-      }
-      return reservations;
+      return this.putParticipants(reservations);
     } catch (err) {
       return;
     }
   }
+
+  async putParticipants(reservations: Reservation[]): Promise<Reservation[]> {
+    try {
+      for (const i of reservations) {
+        if (!i.participants) {
+          i.participants = [];
+        }
+        for (const p of i.participantIds) {
+          const parti = await this.userRepository.findOne(p);
+          if (parti) {
+            i.participants.push(parti);
+          }
+        }
+      }
+      return reservations;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async getTodayRooms(): Promise<Reservation[]> {
     const today = new Date();
     // 저번 달 마지막 일
@@ -271,16 +253,7 @@ export class ReservationService {
         relations: ['host'],
       });
 
-      for (const i of reservations) {
-        for (const p of i.participantIds) {
-          const parti = await this.userRepository.findOne(p);
-          if (!i.participants) {
-            i.participants = [];
-          }
-          i.participants.push(parti);
-        }
-      }
-      return reservations;
+      return this.putParticipants(reservations);
     } catch (err) {
       return;
     }
