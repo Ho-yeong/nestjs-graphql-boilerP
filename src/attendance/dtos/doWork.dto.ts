@@ -15,6 +15,9 @@ export class DoWorkInput {
 
   @Field((type) => WorkType)
   workType: WorkType;
+
+  @Field((type) => Boolean, { nullable: true })
+  dinner?: boolean;
 }
 
 @ObjectType()

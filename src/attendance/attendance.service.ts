@@ -76,7 +76,7 @@ export class AttendanceService {
         let workTime = 0;
 
         if (i.workEnd) {
-          workTime = this.calcWorkTime(i.workStart, i.workEnd);
+          workTime = this.calcWorkTime(i.workStart, i.workEnd, i.dinner);
         }
         weekly += workTime;
       }
@@ -124,7 +124,7 @@ export class AttendanceService {
         const dayData = data.find((v) => v.workStart.getDate() === i);
         if (dayData) {
           if (dayData.workEnd) {
-            workTime = this.calcWorkTime(dayData.workStart, dayData.workEnd);
+            workTime = this.calcWorkTime(dayData.workStart, dayData.workEnd, dayData.dinner);
           }
         }
 
@@ -204,7 +204,7 @@ export class AttendanceService {
 
         if (dayData) {
           if (dayData.workEnd) {
-            tmp.workTime = this.calcWorkTime(dayData.workStart, dayData.workEnd);
+            tmp.workTime = this.calcWorkTime(dayData.workStart, dayData.workEnd, dayData.dinner);
           }
         }
         monthly.push(tmp);
@@ -216,10 +216,11 @@ export class AttendanceService {
     }
   }
 
-  calcWorkTime(workStart: Date, workEnd: Date): number {
-    // 점심 + 저녁 시간
-    let mealTime = 2;
-    // 오전 반차인 경우 -1
+  calcWorkTime(workStart: Date, workEnd: Date, dinner: boolean): number {
+    // 점심 시간
+    let mealTime = 1;
+
+    // 1시 이후로 출근 -> 점심시간 없음
     if (
       moment(workStart).toDate() >
       moment(
@@ -228,15 +229,12 @@ export class AttendanceService {
     ) {
       mealTime -= 1;
     }
-    // 20시 이전 퇴근 인 경우 -1
-    if (
-      moment(workEnd).toDate() <
-      moment(
-        new Date(`${workStart.getFullYear()}-${workStart.getMonth() + 1}-${workStart.getDate()} 20:00:00`),
-      ).toDate()
-    ) {
-      mealTime -= 1;
+
+    // 저녁을 먹은 경우
+    if (dinner) {
+      mealTime += 1;
     }
+
     const t1 = moment(workEnd);
     const t2 = moment(workStart);
     const diff = moment.duration(t1.diff(t2)).asHours();
@@ -248,7 +246,7 @@ export class AttendanceService {
   }
 
   // 출근, 퇴근 하기
-  async doWork({ userId, workId, workType }: DoWorkInput): Promise<DoWorkOutput> {
+  async doWork({ userId, workId, workType, dinner }: DoWorkInput): Promise<DoWorkOutput> {
     try {
       const user = await this.URepo.findOne(userId);
       if (!user) {
@@ -284,6 +282,7 @@ export class AttendanceService {
 
         await this.ARepo.update(workId, {
           workEnd: today > limitTime ? limitTime : today,
+          dinner,
         });
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 고생하셨습니다. 🚗`);
       }
@@ -706,7 +705,7 @@ export class AttendanceService {
         const userAData = attendances.find((v) => v.userId === i.id);
         if (userAData) {
           if (userAData.workEnd) {
-            workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd);
+            workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
             if (i.teamRole !== UserTeamRole.Leader) {
               entireWorkTime += workTime;
             }
@@ -835,7 +834,7 @@ export class AttendanceService {
           const userAData = aData.find((v) => v.workStart.getDate() === i);
           if (userAData) {
             if (userAData.workEnd) {
-              monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd);
+              monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
             }
           }
           const userVData = vData.find((v) => v.date.getDate() === i);
@@ -913,7 +912,7 @@ export class AttendanceService {
 
         for (let i = 0; i < aData.length; i++) {
           if (aData[i].workEnd) {
-            WorkTime += this.calcWorkTime(aData[i].workStart, aData[i].workEnd);
+            WorkTime += this.calcWorkTime(aData[i].workStart, aData[i].workEnd, aData[i].dinner);
           }
         }
         for (let i = 0; i < vData.length; i++) {
@@ -998,8 +997,8 @@ export class AttendanceService {
           tmp.workStart = userAData.workStart;
           if (userAData.workEnd) {
             tmp.workEnd = userAData.workEnd;
-            tmp.duration = this.calcWorkTime(userAData.workStart, userAData.workEnd);
-            monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd);
+            tmp.duration = this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
+            monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
             workDay++;
           }
         }
