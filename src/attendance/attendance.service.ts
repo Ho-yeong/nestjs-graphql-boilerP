@@ -133,7 +133,7 @@ export class AttendanceService {
           monthlyTime += vacationWorkTime;
         }
       }
-      const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 02:00:01`);
+      const todayZero = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 05:30:01`);
 
       const todayWork =
         (await this.ARepo.findOne({
