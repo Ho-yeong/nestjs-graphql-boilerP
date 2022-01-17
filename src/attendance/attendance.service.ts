@@ -705,8 +705,8 @@ export class AttendanceService {
         const userAData = attendances.find((v) => v.userId === i.id);
         if (userAData) {
           if (userAData.workEnd) {
-            workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
             if (i.teamRole !== UserTeamRole.Leader) {
+              workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
               entireWorkTime += workTime;
             }
           }

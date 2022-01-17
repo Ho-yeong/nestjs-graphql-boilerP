@@ -52,7 +52,7 @@ export class User extends CoreEntity {
   @IsNumber()
   vacation: number;
 
-  @Column({ default: 0 })
+  @Column({ default: 0, type: 'float' })
   @Field((type) => Number)
   @IsNumber()
   totalVacation: number;
