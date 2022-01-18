@@ -38,6 +38,9 @@ export class AttendanceService {
     private readonly botService: BotService,
   ) {}
 
+  // 휴가 시간
+  private readonly oneHour = 60 * 60 * 1000;
+
   // 유저 정보 조회 -> 일주일, 한달, 사용한 연차
   async getUserWorkTime({ userId }: GetUserWorkTimeInput): Promise<GetUserWorkTimeOutput> {
     try {
@@ -82,9 +85,9 @@ export class AttendanceService {
       }
 
       for (const i of WeekVacationData) {
-        let vacationTime = 4;
+        let vacationTime = 4 * this.oneHour;
         if (i.type == VacationEnum.DayOff) {
-          vacationTime = 8;
+          vacationTime = 8 * this.oneHour;
         } else if (i.type === VacationEnum.official || i.type === VacationEnum.halfOfficial) {
           vacationTime = 0;
         }
@@ -112,10 +115,10 @@ export class AttendanceService {
 
         const vData = vacationData.find((v) => v.date.getDate() === i);
 
-        let vacationWorkTime = 4;
+        let vacationWorkTime = 4 * this.oneHour;
         if (vData) {
           if (vData.type === VacationEnum.DayOff) {
-            vacationWorkTime = 8;
+            vacationWorkTime = 8 * this.oneHour;
           } else if (vData.type === VacationEnum.official || vData.type === VacationEnum.halfOfficial) {
             vacationWorkTime = 0;
           }
@@ -217,8 +220,9 @@ export class AttendanceService {
   }
 
   calcWorkTime(workStart: Date, workEnd: Date, dinner: boolean): number {
-    // 점심 시간
-    let mealTime = 1;
+    // 점심 시간 1시간
+    const oneHourAsMilliSeconds = 60 * 60 * 1000;
+    let mealTime = oneHourAsMilliSeconds;
 
     // 1시 이후로 출근 -> 점심시간 없음
     if (
@@ -227,19 +231,20 @@ export class AttendanceService {
         new Date(`${workStart.getFullYear()}-${workStart.getMonth() + 1}-${workStart.getDate()} 13:00:00`),
       ).toDate()
     ) {
-      mealTime -= 1;
+      mealTime = 0;
     }
 
     // 저녁을 먹은 경우
     if (dinner) {
-      mealTime += 1;
+      mealTime += oneHourAsMilliSeconds;
     }
 
     const t1 = moment(workEnd);
     const t2 = moment(workStart);
-    const diff = moment.duration(t1.diff(t2)).asHours();
+    const diff = moment.duration(t1.diff(t2)).asMilliseconds();
     let result = Math.floor(diff - mealTime);
-    if (result > 14) {
+    // 14시간 이상이면 0시간으로 처리
+    if (result > oneHourAsMilliSeconds * 14) {
       result = 0;
     }
     return result < 0 ? 0 : result;
@@ -721,16 +726,17 @@ export class AttendanceService {
           tmp.vacation = userVData.type;
           if (userVData.type === VacationEnum.DayOff) {
             if (tmp.duration) {
-              tmp.duration += 8;
+              tmp.duration += 8 * this.oneHour;
             } else {
-              tmp.duration = 8;
+              tmp.duration = 8 * this.oneHour;
             }
           } else if (userVData.type === VacationEnum.official || userVData.type === VacationEnum.halfOfficial) {
+            // 아무 것도 안함
           } else {
             if (tmp.duration) {
-              tmp.duration += 4;
+              tmp.duration += 4 * this.oneHour;
             } else {
-              tmp.duration = 4;
+              tmp.duration = 4 * this.oneHour;
             }
           }
         }
@@ -845,7 +851,7 @@ export class AttendanceService {
           if (userVData) {
             switch (userVData.type) {
               case VacationEnum.DayOff:
-                MonthVacationTime += 8;
+                MonthVacationTime += 8 * this.oneHour;
                 break;
               case VacationEnum.official:
                 officialVacationTime += 8;
@@ -854,7 +860,7 @@ export class AttendanceService {
                 officialVacationTime += 4;
                 break;
               default:
-                MonthVacationTime += 4;
+                MonthVacationTime += 4 * this.oneHour;
             }
           }
         }
@@ -888,6 +894,7 @@ export class AttendanceService {
 
       const users: MonthlyAverageProp[] = [];
       let entireWorkTime = 0;
+      let numberOfLeaders = 0;
 
       for (const user of allUsers) {
         const aData = await this.ARepo.find({
@@ -914,6 +921,9 @@ export class AttendanceService {
         let VacationTime = 0;
         let officialVacationTime = 0;
 
+        if (user.teamRole === UserTeamRole.Leader) {
+          numberOfLeaders++;
+        }
         for (let i = 0; i < aData.length; i++) {
           if (aData[i].workEnd) {
             WorkTime += this.calcWorkTime(aData[i].workStart, aData[i].workEnd, aData[i].dinner);
@@ -922,7 +932,7 @@ export class AttendanceService {
         for (let i = 0; i < vData.length; i++) {
           switch (vData[i].type) {
             case VacationEnum.DayOff:
-              VacationTime += 8;
+              VacationTime += 8 * this.oneHour;
               break;
             case VacationEnum.official:
               officialVacationTime += 8;
@@ -931,17 +941,19 @@ export class AttendanceService {
               officialVacationTime += 4;
               break;
             default:
-              VacationTime += 4;
+              VacationTime += 4 * this.oneHour;
           }
         }
 
         tmp.duration = WorkTime + VacationTime;
         tmp.officialVacationTime = officialVacationTime;
-        entireWorkTime += tmp.duration;
+        if (user.teamRole !== UserTeamRole.Leader) {
+          entireWorkTime += tmp.duration;
+        }
         users.push(tmp);
       }
 
-      return { ok: true, users, entireAvg: (entireWorkTime / allUsers.length).toFixed(1) };
+      return { ok: true, users, entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1) };
     } catch (err) {
       return { ok: false, error: 'Get user average failed' };
     }
@@ -1009,10 +1021,10 @@ export class AttendanceService {
         const userVData = vData.find((v) => v.date.getDate() === i);
         if (userVData) {
           if (userVData.type === VacationEnum.DayOff) {
-            MonthVacationTime += 8;
+            MonthVacationTime += 8 * this.oneHour;
             workDay++;
           } else if (userVData.type === VacationEnum.PMOff || userVData.type === VacationEnum.AMOff) {
-            MonthVacationTime += 4;
+            MonthVacationTime += 4 * this.oneHour;
           }
           tmp.vacation = userVData.type;
         }
