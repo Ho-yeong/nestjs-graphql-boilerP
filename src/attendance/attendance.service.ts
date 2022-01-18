@@ -242,11 +242,8 @@ export class AttendanceService {
     const t1 = moment(workEnd);
     const t2 = moment(workStart);
     const diff = moment.duration(t1.diff(t2)).asMilliseconds();
-    let result = Math.floor(diff - mealTime);
-    // 14시간 이상이면 0시간으로 처리
-    if (result > oneHourAsMilliSeconds * 14) {
-      result = 0;
-    }
+    const result = Math.floor(diff - mealTime);
+
     return result < 0 ? 0 : result;
   }
 

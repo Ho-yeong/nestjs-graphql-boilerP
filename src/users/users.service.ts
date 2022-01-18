@@ -40,18 +40,16 @@ export class UsersService {
       // 이번주 월요일
       const mon = moment(today).startOf('isoWeek');
       // 이번주 일요일
-      const sun = mon.add(6, 'days');
+      const sun = moment(today).startOf('isoWeek').add(6, 'days');
+
+      const m = moment(new Date(mon.toDate())).format('YYYY-MM-DD HH:mm:ss');
+      const s = moment(new Date(sun.toDate())).format('YYYY-MM-DD HH:mm:ss');
 
       const users: AllUserOutputProp[] = [];
 
       for (const i of usersData) {
         let weekly = 0;
         let monthlyTime = 0;
-
-        const KR_TIME_DIFF = 9 * 60 * 60 * 1000;
-
-        const m = moment(new Date(mon.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
-        const s = moment(new Date(sun.toDate().getTime() + KR_TIME_DIFF)).format('YYYY-MM-DD HH:mm:ss');
 
         const WeekAttendanceData = await this.ARepo.find({
           where: {
@@ -102,19 +100,21 @@ export class UsersService {
           let workTime = 0;
 
           const vData = vacationData.find((v) => v.date.getDate() === i);
-          let vacationWorkTime = 4;
+          let vacationWorkTime = 0;
           if (vData) {
             if (vData.type === VacationEnum.DayOff) {
               vacationWorkTime = 8;
-            } else if (vData.type === VacationEnum.official) {
+            } else if (vData.type === VacationEnum.official || vData.type === VacationEnum.halfOfficial) {
               vacationWorkTime = 0;
+            } else {
+              vacationWorkTime = 4;
             }
           }
 
           const dayData = data.find((v) => v.workStart.getDate() === i);
           if (dayData) {
             if (dayData.workEnd) {
-              let mealTime = 2;
+              let mealTime = 1;
               if (
                 dayData.workStart >
                 moment(
@@ -127,17 +127,8 @@ export class UsersService {
               ) {
                 mealTime -= 1;
               }
-              if (
-                dayData.workEnd <
-                moment(
-                  new Date(
-                    `${dayData.workStart.getFullYear()}-${
-                      dayData.workStart.getMonth() + 1
-                    }-${dayData.workStart.getDate()} 20:00:00`,
-                  ),
-                ).toDate()
-              ) {
-                mealTime -= 1;
+              if (dayData.dinner) {
+                mealTime += 1;
               }
 
               const t1 = moment(dayData.workEnd);
