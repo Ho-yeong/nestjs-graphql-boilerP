@@ -162,6 +162,7 @@ export class AttendanceService {
     }
   }
 
+  // 바 그래프
   async getUserMonthlyWork({ userId, month, year }: GetUserMonthlyWorkInput): Promise<GetUserMonthlyWorkOutput> {
     try {
       const user = await this.URepo.findOne(userId);

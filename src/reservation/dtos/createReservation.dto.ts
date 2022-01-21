@@ -10,7 +10,10 @@ export class CreateReservationInput extends PickType(Reservation, [
   'content',
   'roomId',
   'participantIds',
-]) {}
+]) {
+  @Field((type) => Boolean)
+  msg: boolean;
+}
 
 @ObjectType()
 export class CreateReservationOutput extends CoreOutput {

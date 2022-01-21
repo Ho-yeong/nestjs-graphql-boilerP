@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { BotApiModuleOptions } from './bot.constant';
+import { User } from '../users/entities/user.entity';
+import * as moment from 'moment';
 
 @Injectable()
 export class BotService {
@@ -121,5 +123,104 @@ export class BotService {
       url: this.options.ApiUrl + 'messages.send_by_email',
       data,
     });
+  }
+
+  async sendReservationMsgByEmail(email: string, blocks: Record<any, any>[]): Promise<{ data: Record<string, any> }> {
+    const data = {
+      email,
+      text: '회의실 예약 메세지',
+      blocks,
+    };
+
+    return axios({
+      method: 'post',
+      headers: this.getHeaderForBot2(),
+      url: this.options.ApiUrl + 'messages.send_by_email',
+      data,
+    });
+  }
+
+  makeReservationMsg(location: string, title, host: User, participants: User[], date: Date): Record<any, any>[] {
+    let blocks = [
+      {
+        type: 'header',
+        text: `초대 / ${location} 회의실`,
+        style: 'blue',
+      },
+      {
+        type: 'text',
+        text: `${title}`,
+      },
+      {
+        type: 'divider',
+      },
+      {
+        type: 'text',
+        text: '참가자',
+        inlines: [
+          {
+            type: 'styled',
+            text: '참가자',
+            bold: true,
+          },
+        ],
+      },
+      {
+        type: 'text',
+        text: '...',
+        inlines: [
+          {
+            type: 'styled',
+            text: host.team,
+            bold: true,
+          },
+          {
+            type: 'styled',
+            text: ` ${host.name}`,
+            strike: false,
+          },
+        ],
+      },
+    ];
+
+    for (const i of participants) {
+      blocks.push({
+        type: 'text',
+        text: '...',
+        inlines: [
+          {
+            type: 'styled',
+            text: i.team,
+            bold: true,
+          },
+          {
+            type: 'styled',
+            text: ` ${i.name}`,
+            strike: false,
+          },
+        ],
+      });
+    }
+
+    const dateBlock = [
+      {
+        type: 'divider',
+      },
+      {
+        type: 'description',
+        term: '일시',
+        content: {
+          type: 'text',
+          text: moment(date).format('YYYY년 MM월 DD일 HH시 mm분'),
+        },
+        accent: true,
+      },
+    ];
+
+    console.log(blocks);
+
+    blocks = blocks.concat(dateBlock);
+
+    return blocks;
   }
 }

@@ -12,6 +12,8 @@ import { GetMyReservationOutput } from './dtos/getMyReservation.dto';
 import { PUB_SUB } from '../common/common.constants';
 import { PubSub } from 'graphql-subscriptions';
 import { EditReservationInput } from './dtos/editReservation.dto';
+import { BotService } from '../bot/bot.service';
+import { RoomsEnum } from './entities/reservation.constant';
 
 @Injectable()
 export class ReservationService {
@@ -19,19 +21,23 @@ export class ReservationService {
     @InjectRepository(Reservation) private readonly RRepository: Repository<Reservation>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly botService: BotService,
   ) {}
 
   // 예약하기
-  async createReservation(user: User, createRestaurantInput: CreateReservationInput): Promise<CreateReservationOutput> {
+  async createReservation(
+    user: User,
+    { msg, endAt, title, content, startAt, roomId, participantIds }: CreateReservationInput,
+  ): Promise<CreateReservationOutput> {
     try {
       const startTimeCheck = await this.RRepository.find({
         where: {
-          roomId: createRestaurantInput.roomId,
-          startAt: Raw((startAt) => `${startAt} < timestamp :startTime`, {
-            startTime: createRestaurantInput.startAt,
+          roomId,
+          startAt: Raw((startAt) => `${startAt} < timestamp :startAt`, {
+            startAt,
           }),
-          endAt: Raw((endAt) => `${endAt} > timestamp :startTime`, {
-            startTime: createRestaurantInput.startAt,
+          endAt: Raw((endAt) => `${endAt} > timestamp :startAt`, {
+            startAt,
           }),
         },
       });
@@ -42,12 +48,12 @@ export class ReservationService {
 
       const endTimeCheck = await this.RRepository.find({
         where: {
-          roomId: createRestaurantInput.roomId,
-          startAt: Raw((startAt) => `${startAt} < timestamp :endTime`, {
-            endTime: createRestaurantInput.endAt,
+          roomId,
+          startAt: Raw((startAt) => `${startAt} < timestamp :endAt`, {
+            endAt,
           }),
-          endAt: Raw((endAt) => `${endAt} > timestamp :endTime`, {
-            endTime: createRestaurantInput.endAt,
+          endAt: Raw((endAt) => `${endAt} > timestamp :endAt`, {
+            endAt,
           }),
         },
       });
@@ -56,15 +62,47 @@ export class ReservationService {
         return { ok: false, error: 'endTime' };
       }
 
-      const reservation = this.RRepository.create(createRestaurantInput);
-      reservation.host = user;
+      const reservation = this.RRepository.create({
+        roomId,
+        participantIds,
+        startAt,
+        endAt,
+        title,
+        host: user,
+        content,
+      });
 
       await this.RRepository.save(reservation);
+      reservation.participants = [];
       for (const p of reservation.participantIds) {
-        reservation.participants = [];
         const parti = await this.userRepository.findOne(p);
         if (parti) {
           reservation.participants.push(parti);
+        }
+      }
+
+      if (msg) {
+        let roomName = '';
+        switch (roomId) {
+          case RoomsEnum.Room1:
+            roomName = 'A동 6인';
+            break;
+          case RoomsEnum.Room2:
+            roomName = 'A동 8인';
+            break;
+          case RoomsEnum.Room3:
+            roomName = 'B동 4인';
+            break;
+          case RoomsEnum.Room4:
+            roomName = 'B동 대회의실';
+            break;
+        }
+
+        const msgData = this.botService.makeReservationMsg(roomName, title, user, reservation.participants, startAt);
+        console.log(msgData);
+        await this.botService.sendReservationMsgByEmail(user.email, msgData);
+        for (const p of reservation.participants) {
+          await this.botService.sendReservationMsgByEmail(p.email, msgData);
         }
       }
 
