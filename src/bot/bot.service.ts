@@ -3,6 +3,7 @@ import axios from 'axios';
 import { BotApiModuleOptions } from './bot.constant';
 import { User } from '../users/entities/user.entity';
 import * as moment from 'moment';
+import { TeamMapping } from '../users/entities/users.constants';
 
 @Injectable()
 export class BotService {
@@ -171,7 +172,7 @@ export class BotService {
         inlines: [
           {
             type: 'styled',
-            text: host.team,
+            text: TeamMapping[host.team],
             bold: true,
           },
           {
@@ -216,8 +217,6 @@ export class BotService {
         accent: true,
       },
     ];
-
-    console.log(blocks);
 
     blocks = blocks.concat(dateBlock);
 

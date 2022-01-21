@@ -99,7 +99,6 @@ export class ReservationService {
         }
 
         const msgData = this.botService.makeReservationMsg(roomName, title, user, reservation.participants, startAt);
-        console.log(msgData);
         await this.botService.sendReservationMsgByEmail(user.email, msgData);
         for (const p of reservation.participants) {
           await this.botService.sendReservationMsgByEmail(p.email, msgData);
