@@ -14,6 +14,7 @@ import { AuthUser } from '../auth/authUser.decorator';
 import { DeleteAccountInput } from '../common/dtos/deleteAccount.dto';
 import { EditPasswordInput, EditPasswordOutput } from './dtos/editPassword.dto';
 import { SendMessageInput, SendMessageOutput } from './dtos/sendMessage.dto';
+import { EditPasswordByAdminInput } from './dtos/editPasswordByAdmin.dto';
 
 @Resolver()
 export class UsersResolver {
@@ -64,6 +65,15 @@ export class UsersResolver {
     @Args('input') editPasswordInput: EditPasswordInput,
   ): Promise<EditPasswordOutput> {
     return this.usersService.editPassword(authUser, editPasswordInput);
+  }
+
+  @Mutation((returns) => EditPasswordOutput)
+  @Role(['Admin'])
+  editPasswordByAdmin(
+    @AuthUser() authUser: User,
+    @Args('input') editPasswordInput: EditPasswordByAdminInput,
+  ): Promise<EditPasswordOutput> {
+    return this.usersService.editPasswordByAdmin(authUser, editPasswordInput);
   }
 
   @Mutation((returns) => SendMessageOutput)

@@ -18,6 +18,7 @@ import { Vacation } from '../attendance/entities/vacation.entity';
 import { VacationEnum } from '../attendance/entities/request.constant';
 import { SendMessageInput, SendMessageOutput } from './dtos/sendMessage.dto';
 import { Cron } from '@nestjs/schedule';
+import { EditPasswordByAdminInput } from './dtos/editPasswordByAdmin.dto';
 
 @Injectable()
 export class UsersService {
@@ -304,6 +305,30 @@ export class UsersService {
     }
   }
 
+  async editPasswordByAdmin(admin: User, { password, id }: EditPasswordByAdminInput) {
+    try {
+      if (admin.role !== UserRole.Admin) {
+        return { ok: false, error: 'Authentication failure' };
+      }
+
+      const user = await this.users.findOne(id);
+      if (!user) {
+        return { ok: false, error: 'User not found' };
+      }
+      user.password = password;
+      await this.users.save(user);
+
+      await this.botService.sendMessageByEmail(
+        user.email,
+        `[${moment(new Date()).format('MM월 DD일')}] 비밀번호가 변경되었습니다.`,
+      );
+
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: "Couldn't edit password" };
+    }
+  }
+
   async sendMessage(user: User, { emails, content }: SendMessageInput): Promise<SendMessageOutput> {
     try {
       if (user.role !== UserRole.Admin) {
@@ -316,10 +341,7 @@ export class UsersService {
 
       return { ok: true };
     } catch (error) {
-      return {
-        ok: false,
-        error,
-      };
+      return { ok: false, error };
     }
   }
 
