@@ -29,6 +29,11 @@ export class ReservationService {
     user: User,
     { msg, endAt, title, content, startAt, roomId, participantIds }: CreateReservationInput,
   ): Promise<CreateReservationOutput> {
+    // TODO 임시 처리 5월까지 회의실 사용 금지
+    if (roomId === RoomsEnum.Room3) {
+      return { ok: false, error: '5월 말까지 사운드 작업으로 이용 중' };
+    }
+
     try {
       const startTimeCheck = await this.RRepository.find({
         where: {
@@ -90,9 +95,9 @@ export class ReservationService {
           case RoomsEnum.Room2:
             roomName = 'A동 8인';
             break;
-          case RoomsEnum.Room3:
-            roomName = 'B동 4인';
-            break;
+          // case RoomsEnum.Room3:
+          //   roomName = 'B동 4인';
+          //   break;
           case RoomsEnum.Room4:
             roomName = 'B동 대회의실';
             break;
