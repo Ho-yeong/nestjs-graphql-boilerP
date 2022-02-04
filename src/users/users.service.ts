@@ -19,6 +19,7 @@ import { VacationEnum } from '../attendance/entities/request.constant';
 import { SendMessageInput, SendMessageOutput } from './dtos/sendMessage.dto';
 import { Cron } from '@nestjs/schedule';
 import { EditPasswordByAdminInput } from './dtos/editPasswordByAdmin.dto';
+import { AttendanceService } from '../attendance/attendance.service';
 
 @Injectable()
 export class UsersService {
@@ -26,6 +27,7 @@ export class UsersService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Attendance) private readonly ARepo: Repository<Attendance>,
     @InjectRepository(Vacation) private readonly VRepo: Repository<Vacation>,
+    private readonly attendanceService: AttendanceService,
     private readonly jwtService: JwtService,
     private readonly botService: BotService,
   ) {}
@@ -147,6 +149,7 @@ export class UsersService {
 
         tmp = {
           ...i,
+          vacation: await this.attendanceService.getUsedVacation(i.id),
           weekly: weekly,
           monthly: monthlyTime,
         };

@@ -10,5 +10,6 @@ import { Vacation } from './entities/vacation.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Attendance, Request, User, Vacation])],
   providers: [AttendanceService, AttendanceResolver],
+  exports: [AttendanceService],
 })
 export class AttendanceModule {}

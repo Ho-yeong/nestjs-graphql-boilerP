@@ -41,6 +41,45 @@ export class AttendanceService {
   // 휴가 시간
   private readonly oneHour = 60 * 60 * 1000;
 
+  // 1년간 사용 연차 계산
+  async getUsedVacation(userId: number): Promise<number> {
+    try {
+      const thisYear = new Date().getFullYear();
+
+      const thisYearFirst = new Date(`${thisYear}-01-01 00:00:00`);
+      const thisYearLast = new Date(`${thisYear}-12-31 23:59:59`);
+
+      const totalVacation = await this.VRepo.find({
+        where: {
+          userId,
+          date: Between(thisYearFirst, thisYearLast),
+        },
+      });
+
+      let dayOfVacation = 0;
+
+      for (const i of totalVacation) {
+        switch (i.type) {
+          case VacationEnum.DayOff:
+            dayOfVacation += 1;
+            break;
+          case VacationEnum.AMOff:
+            dayOfVacation += 0.5;
+            break;
+          case VacationEnum.PMOff:
+            dayOfVacation += 0.5;
+            break;
+          default:
+            break;
+        }
+      }
+
+      return dayOfVacation;
+    } catch {
+      return -1;
+    }
+  }
+
   // 유저 정보 조회 -> 일주일, 한달, 사용한 연차
   async getUserWorkTime({ userId }: GetUserWorkTimeInput): Promise<GetUserWorkTimeOutput> {
     try {
@@ -151,7 +190,7 @@ export class AttendanceService {
 
       return {
         ok: true,
-        vacation: user.vacation,
+        vacation: await this.getUsedVacation(userId),
         totalVacation: user.totalVacation,
         weekly,
         monthlyTime,
