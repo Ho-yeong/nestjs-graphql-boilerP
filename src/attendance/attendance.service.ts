@@ -38,6 +38,39 @@ export class AttendanceService {
     private readonly botService: BotService,
   ) {}
 
+  // 중복 출근 횟수 찾기
+  async test() {
+    try {
+      const workData = await this.ARepo.find();
+
+      const result = {};
+
+      for (const i of workData) {
+        if (result[i.userId]) {
+          if (result[i.userId][`${i.workStart.getFullYear()}-${i.workStart.getMonth() + 1}-${i.workStart.getDate()}`]) {
+            result[i.userId][`${i.workStart.getFullYear()}-${i.workStart.getMonth() + 1}-${i.workStart.getDate()}`]++;
+          } else {
+            result[i.userId][`${i.workStart.getFullYear()}-${i.workStart.getMonth() + 1}-${i.workStart.getDate()}`] = 1;
+          }
+        } else {
+          result[i.userId] = {};
+
+          result[i.userId][`${i.workStart.getFullYear()}-${i.workStart.getMonth() + 1}-${i.workStart.getDate()}`] = 1;
+        }
+      }
+
+      Object.keys(result).forEach((v) => {
+        Object.keys(result[v]).forEach((b) => {
+          if (result[v][b] > 1) {
+            console.log(`${v} / ${b}`);
+          }
+        });
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   // 휴가 시간
   private readonly oneHour = 60 * 60 * 1000;
 
@@ -302,6 +335,19 @@ export class AttendanceService {
       );
 
       if (workType === WorkType.START) {
+        const start = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 10:00:00`);
+        const end = new Date(`${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()} 22:00:00`);
+        const workCheck = await this.ARepo.findOne({
+          where: {
+            userId,
+            workStart: Between(start, end),
+          },
+        });
+
+        if (workCheck) {
+          return { ok: false, error: '이미 출근하셨습니다' };
+        }
+
         await this.ARepo.insert(
           this.ARepo.create({
             userId,
@@ -815,7 +861,6 @@ export class AttendanceService {
           ...(dinner !== undefined && { dinner }),
         }),
       );
-
       return { ok: true, attendanceId: result.raw.insertId };
     } catch (error) {
       return { ok: false, error: '근무 정보 수정에 실패하였습니다.' };
