@@ -367,9 +367,12 @@ export class AttendanceService {
         const limitTime = new Date(
           `${limitDate.getFullYear()}-${limitDate.getMonth() + 1}-${limitDate.getDate()} 02:00:00`,
         );
+        const workEndTime = new Date(
+          `${limitDate.getFullYear()}-${limitDate.getMonth() + 1}-${AData.workStart.getDate()} 19:00:00`,
+        );
 
         await this.ARepo.update(workId, {
-          workEnd: today > limitTime ? limitTime : today,
+          workEnd: today > limitTime ? workEndTime : today,
           dinner,
         });
         await this.botService.sendMessageByEmail(user.email, `${user.name}님, 오늘도 고생하셨습니다. 🚗`);
