@@ -32,6 +32,9 @@ export class MonthlyAverageProp {
   duration?: number;
 
   @Field((type) => Number, { nullable: true })
+  workTimeOnWorkDay?: number;
+
+  @Field((type) => Number, { nullable: true })
   officialVacationTime?: number;
 }
 

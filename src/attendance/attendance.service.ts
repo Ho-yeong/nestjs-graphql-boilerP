@@ -294,8 +294,7 @@ export class AttendanceService {
 
   calcWorkTime(workStart: Date, workEnd: Date, dinner: boolean): number {
     // 점심 시간 1시간
-    const oneHourAsMilliSeconds = 60 * 60 * 1000;
-    let mealTime = oneHourAsMilliSeconds;
+    let mealTime = this.oneHour;
 
     // 1시 이후로 출근 -> 점심시간 없음
     if (
@@ -309,7 +308,7 @@ export class AttendanceService {
 
     // 저녁을 먹은 경우
     if (dinner) {
-      mealTime += oneHourAsMilliSeconds;
+      mealTime += this.oneHour;
     }
 
     const t1 = moment(workEnd);
@@ -893,6 +892,11 @@ export class AttendanceService {
         }),
       });
 
+      const { ok, workDays } = await this.getWorkingDayArray(targetMonth, targetMonthLastDay);
+      if (!ok) {
+        return { ok: false, error: '워킹데이 계산에 실패했습니다.' };
+      }
+
       const users: MonthlyAverageProp[] = [];
       let entireWorkTime = 0;
       let numberOfLeaders = 0;
@@ -921,6 +925,7 @@ export class AttendanceService {
         let monthWorkTime = 0;
         let MonthVacationTime = 0;
         let officialVacationTime = 0;
+        let workTimeOnWorkDay = 0;
 
         if (user.teamRole === UserTeamRole.Leader) {
           numberOfLeaders++;
@@ -929,7 +934,11 @@ export class AttendanceService {
           const userAData = aData.find((v) => v.workStart.getDate() === i);
           if (userAData) {
             if (userAData.workEnd) {
-              monthWorkTime += this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
+              const workTime = this.calcWorkTime(userAData.workStart, userAData.workEnd, userAData.dinner);
+              monthWorkTime += workTime;
+              if (workDays.find((v) => v === this.dateToString(userAData.workStart))) {
+                workTimeOnWorkDay += workTime;
+              }
             }
           }
           const userVData = vData.find((v) => v.date.getDate() === i);
@@ -947,8 +956,16 @@ export class AttendanceService {
               default:
                 MonthVacationTime += 4 * this.oneHour;
             }
+            if (workDays.find((v) => v === this.dateToString(userVData.date))) {
+              if (userVData.type === VacationEnum.DayOff || userVData.type === VacationEnum.official) {
+                workTimeOnWorkDay += 8 * this.oneHour;
+              } else {
+                workTimeOnWorkDay += 4 * this.oneHour;
+              }
+            }
           }
         }
+        tmp.workTimeOnWorkDay = workTimeOnWorkDay / workDays.length;
         tmp.duration = monthWorkTime + MonthVacationTime;
         tmp.officialVacationTime = officialVacationTime;
         if (user.teamRole !== UserTeamRole.Leader) {
@@ -976,6 +993,11 @@ export class AttendanceService {
           },
         }),
       });
+
+      const { ok, workDays } = await this.getWorkingDayArray(startDate, endDate);
+      if (!ok) {
+        return { ok: false, error: '워킹데이 계산에 실패했습니다.' };
+      }
 
       const users: MonthlyAverageProp[] = [];
       let entireWorkTime = 0;
@@ -1005,13 +1027,18 @@ export class AttendanceService {
         let WorkTime = 0;
         let VacationTime = 0;
         let officialVacationTime = 0;
+        let workTimeOnWorkDay = 0;
 
         if (user.teamRole === UserTeamRole.Leader) {
           numberOfLeaders++;
         }
         for (let i = 0; i < aData.length; i++) {
           if (aData[i].workEnd) {
-            WorkTime += this.calcWorkTime(aData[i].workStart, aData[i].workEnd, aData[i].dinner);
+            const time = this.calcWorkTime(aData[i].workStart, aData[i].workEnd, aData[i].dinner);
+            WorkTime += time;
+            if (workDays.find((v) => v === this.dateToString(aData[i].workStart))) {
+              workTimeOnWorkDay += time;
+            }
           }
         }
         for (let i = 0; i < vData.length; i++) {
@@ -1028,8 +1055,16 @@ export class AttendanceService {
             default:
               VacationTime += 4 * this.oneHour;
           }
+          if (workDays.find((v) => v === this.dateToString(vData[i].date))) {
+            if (vData[i].type === VacationEnum.DayOff || vData[i].type === VacationEnum.official) {
+              workTimeOnWorkDay += 8 * this.oneHour;
+            } else {
+              workTimeOnWorkDay += 4 * this.oneHour;
+            }
+          }
         }
 
+        tmp.workTimeOnWorkDay = workTimeOnWorkDay / (workDays.length === 0 ? 1 : workDays.length);
         tmp.duration = WorkTime + VacationTime;
         tmp.officialVacationTime = officialVacationTime;
         if (user.teamRole !== UserTeamRole.Leader) {
@@ -1141,6 +1176,53 @@ export class AttendanceService {
       return { ok: true, requests: data };
     } catch (error) {
       return { ok: false, error: 'Get requests failed' };
+    }
+  }
+
+  // {year}{month}{date}
+  dateToString(date: Date): string {
+    return `${date.getFullYear()}${date.getMonth() + 1 >= 10 ? date.getMonth() + 1 : `0${date.getMonth() + 1}`}${
+      date.getDate() >= 10 ? date.getDate() : `0${date.getDate()}`
+    }`;
+  }
+
+  async getWorkingDayArray(startDate: Date, endDate: Date): Promise<{ ok: boolean; workDays?: string[] }> {
+    try {
+      const result = [];
+      const AllMembers = await this.URepo.count({
+        where: {
+          teamRole: Not(UserTeamRole.Leader),
+        },
+      });
+      const majority = Math.ceil(AllMembers * 0.45);
+
+      const t1 = moment(startDate);
+      const t2 = moment(endDate);
+
+      const diff = moment.duration(t2.diff(t1));
+
+      const days = Math.ceil(diff.asDays());
+
+      for (let i = 0; i < days; i++) {
+        const standard = moment(startDate).add(i, 'days').tz('Asia/Seoul').toDate();
+        const ymd = `${standard.getFullYear()}-${standard.getMonth() + 1}-${standard.getDate()}`;
+
+        const dayStart = `${ymd} 00:00:00`;
+        const dayEnd = `${ymd} 15:00:00`;
+
+        const attendances = await this.ARepo.count({
+          where: {
+            workStart: Between(dayStart, dayEnd),
+          },
+        });
+        if (attendances > majority) {
+          result.push(this.dateToString(standard));
+        }
+      }
+
+      return { ok: true, workDays: result };
+    } catch (error) {
+      return { ok: false };
     }
   }
 }
