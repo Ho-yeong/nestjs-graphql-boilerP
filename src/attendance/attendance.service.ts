@@ -15,7 +15,7 @@ import { BotService } from '../bot/bot.service';
 import * as moment from 'moment-timezone';
 import { Vacation } from './entities/vacation.entity';
 import { AttendanceMonthlyData, GetUserMonthlyWorkInput, GetUserMonthlyWorkOutput } from './dtos/getMonthlyWork.dto';
-import { UserRole, UserTeamRole } from '../users/entities/users.constants';
+import { TeamMapping, UserRole, UserTeamRole } from '../users/entities/users.constants';
 import { GetAllVacationInput, GetAllVacationOutput } from './dtos/getAllVacation.dto';
 import { DeleteVacationInput, DeleteVacationOutput } from './dtos/deleteVacation.dto';
 import { Cron } from '@nestjs/schedule';
@@ -73,6 +73,7 @@ export class AttendanceService {
 
   // 휴가 시간
   private readonly oneHour = 60 * 60 * 1000;
+  private readonly oneMinute = 60 * 1000;
 
   // 1년간 사용 연차 계산
   async getUsedVacation(userId: number): Promise<number> {
@@ -1002,6 +1003,7 @@ export class AttendanceService {
       const users: MonthlyAverageProp[] = [];
       let entireWorkTime = 0;
       let numberOfLeaders = 0;
+      const forExcel = [];
 
       for (const user of allUsers) {
         const aData = await this.ARepo.find({
@@ -1017,6 +1019,11 @@ export class AttendanceService {
             userId: user.id,
           },
         });
+
+        const forExcelProp = {
+          이름: user.name,
+          팀: TeamMapping[user.team],
+        };
 
         const tmp: MonthlyAverageProp = {
           id: user.id,
@@ -1038,28 +1045,47 @@ export class AttendanceService {
             WorkTime += time;
             if (workDays.find((v) => v === this.dateToString(aData[i].workStart))) {
               workTimeOnWorkDay += time;
+
+              const hour = Math.floor(time / this.oneHour);
+              const min = Math.floor((time - hour * 60 * 60 * 1000) / this.oneMinute);
+              forExcelProp[this.dateToString(aData[i].workStart)] = `${hour}h ${min}m`;
             }
           }
         }
+
+        let typeText = '';
+
         for (let i = 0; i < vData.length; i++) {
           switch (vData[i].type) {
             case VacationEnum.DayOff:
               VacationTime += 8 * this.oneHour;
+              typeText = '연차';
+
               break;
             case VacationEnum.official:
               officialVacationTime += 8;
+              typeText = '공가';
+
               break;
             case VacationEnum.halfOfficial:
               officialVacationTime += 4;
+              typeText = '반공가';
               break;
             default:
               VacationTime += 4 * this.oneHour;
+              typeText = '반차';
           }
           if (workDays.find((v) => v === this.dateToString(vData[i].date))) {
             if (vData[i].type === VacationEnum.DayOff || vData[i].type === VacationEnum.official) {
               workTimeOnWorkDay += 8 * this.oneHour;
             } else {
               workTimeOnWorkDay += 4 * this.oneHour;
+            }
+
+            if (forExcelProp[this.dateToString(vData[i].date)]) {
+              forExcelProp[this.dateToString(vData[i].date)] += ` + ${typeText}`;
+            } else {
+              forExcelProp[this.dateToString(vData[i].date)] = typeText;
             }
           }
         }
@@ -1071,10 +1097,17 @@ export class AttendanceService {
           entireWorkTime += tmp.duration;
         }
         users.push(tmp);
+        forExcel.push(forExcelProp);
       }
 
-      return { ok: true, users, entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1) };
+      return {
+        ok: true,
+        users,
+        entireAvg: (entireWorkTime / (allUsers.length - numberOfLeaders)).toFixed(1),
+        forExcel: JSON.stringify(forExcel),
+      };
     } catch (err) {
+      console.log(err);
       return { ok: false, error: 'Get user average failed' };
     }
   }

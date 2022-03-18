@@ -2,6 +2,7 @@ import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { CoreOutput } from '../../common/dtos/output.dto';
 import { MonthlyAverageProp } from './getMonthlyAverage.dto';
 import { UserTeam } from '../../users/entities/users.constants';
+import { GraphQLObjectType } from 'graphql';
 
 @InputType()
 export class GetWeeklyAverageInput {
@@ -22,4 +23,7 @@ export class GetWeeklyAverageOutput extends CoreOutput {
 
   @Field((type) => [MonthlyAverageProp], { nullable: true })
   users?: MonthlyAverageProp[];
+
+  @Field((type) => String, { nullable: true })
+  forExcel?: string;
 }
